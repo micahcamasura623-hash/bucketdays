@@ -110,7 +110,7 @@ function Footer(){
         <div className="ftr-cols">
           <div><h4>Explore</h4><span>Adrenaline</span><span>Flying</span><span>Food &amp; Drink</span><span>Days Out</span></div>
           <div><h4>Company</h4><span>About</span><span>How it works</span><span>List your activity</span></div>
-          <div><h4>Help</h4><span>Contact</span><span>Refunds</span><span>Terms</span></div>
+          <div><h4>Explore</h4><a href="/guides/" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Guides</a><span>Contact</span><span>Refunds</span><span>Terms</span></div>
         </div>
       </div>
       <div className="ftr-base">Prototype · “Book now” activities run through our calendar; others link to trusted partners. Prices indicative.</div>
