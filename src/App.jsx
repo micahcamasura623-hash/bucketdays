@@ -90,10 +90,8 @@ function Header({onHome}){
     <header className="hdr">
       <nav className="hdr-in" aria-label="Primary">
         <button className="logo" onClick={onHome}>
-          <span className="logo-mark">▲</span>
-          <span className="logo-word">BucketDays</span>
+          <img src="/logo-white.png" alt="BucketDays — Find it. Book it. Go." style={{height:"42px",width:"auto",display:"block"}} />
         </button>
-        <span className="hdr-tag">Find it. Book it. Go.</span>
       </nav>
     </header>
   );
