@@ -102,7 +102,7 @@ function Footer(){
     <footer className="ftr">
       <div className="ftr-in">
         <div>
-          <div className="logo" style={{ marginBottom:10 }}><span className="logo-mark" style={{color:C.coral}}>▲</span><span style={{fontFamily:"'Anton',sans-serif",fontSize:22,letterSpacing:".02em"}}>BucketDays</span></div>
+          <div style={{ marginBottom:14 }}><img src="/logo-white.png" alt="BucketDays" style={{height:"36px",width:"auto",display:"block"}} /></div>
           <p style={{ maxWidth:340, color:C.inkMuted, fontSize:14, lineHeight:1.6, margin:0 }}>The fastest way to find something to do across the UK — filtered by what actually fits your day.</p>
         </div>
         <div className="ftr-cols">
