@@ -383,6 +383,12 @@ body{margin:0}
 .hero-sub{font-size:clamp(16px,2vw,19px);color:#D6DAE6;max-width:540px;line-height:1.55;margin:0 0 26px}
 .hero-cta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .hero-trust{font-size:13px;color:${C.inkMuted}}
+.trust-row{display:flex;flex-direction:row;flex-wrap:wrap;gap:32px;margin-top:24px}
+.trust-item{display:flex;flex-direction:row;align-items:flex-start;gap:10px;max-width:220px}
+.trust-icon{font-size:20px;line-height:1.2;flex-shrink:0}
+.trust-item strong{display:block;font-size:14px;color:#fff}
+.trust-item div>br{display:none}
+.trust-item div{font-size:13px;color:${C.inkMuted};line-height:1.4}
 
 .hero-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg, ${C.ink} 0%, rgba(20,27,46,.88) 45%, rgba(20,27,46,.4) 75%);z-index:1}
