@@ -89,9 +89,15 @@ function Header({onHome}){
     <header className="hdr">
       <nav className="hdr-in" aria-label="Primary">
         <button className="logo" onClick={onHome}>
-          <img src="/logo-white.png" alt="BucketDays — Find it. Book it. Go." style={{height:"42px",width:"auto",display:"block"}} />
-        </button>
-      </nav>
+  <img src="/logo-white.png" alt="BucketDays — Find it. Book it. Go." style={{height:"42px",width:"auto",display:"block"}} />
+</button>
+<div className="hdr-links">
+  <a href="#grid">Experiences</a>
+  <a href="#how">How It Works</a>
+  <a href="/guides">Guides</a>
+  <a href="#contact">Contact</a>
+</div>
+</nav>
     </header>
   );
 }
@@ -398,6 +404,13 @@ body{margin:0}
 .hero-cta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .hero-trust{font-size:13px;color:${C.inkMuted}}
 
+.hero-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg, ${C.ink} 0%, rgba(20,27,46,.88) 45%, rgba(20,27,46,.4) 75%);z-index:1}
+.hero-in{position:relative;z-index:2}
+.hdr-links{display:flex;gap:28px;align-items:center}
+.hdr-links a{color:#fff;text-decoration:none;font-size:14px;font-weight:600}
+.hdr-links a:hover{color:${C.coral}}
+@media (max-width:768px){.hdr-links{display:none}}
 /* featured strip */
 .strip{position:relative;max-width:1180px;margin:0 auto;padding:0 22px 30px;display:flex;gap:12px;overflow-x:auto;scrollbar-width:none}
 .strip::-webkit-scrollbar{display:none}
