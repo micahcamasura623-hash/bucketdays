@@ -140,31 +140,40 @@ function Browse({onBook}){
   return (
     <main>
       {/* HERO */}
-      <section className="hero">
-        <div className="hero-glow" aria-hidden="true" />
-        <div className="hero-in">
-          <p className="eyebrow">Across the UK · 200+ experiences</p>
-          <h1 className="hero-h1">
-            Something to do<br/>in the UK,{" "}
-            <span className="rot-wrap"><span key={word} className="rot">{ROTATING[word]}</span></span>
-          </h1>
-          <p className="hero-sub">Skip the fifteen phone calls. Filter by beginner-friendly, solo, budget and vibe — then book in minutes.</p>
-          <div className="hero-cta">
-            <a href="#grid" className="btn btn-coral">Browse experiences</a>
-            <span className="hero-trust">★ 4.7 average · no booking fees</span>
-          </div>
-        </div>
-        {/* featured ticket strip */}
-        <div className="strip" aria-label="Featured">
-          {featured.map(a=>(
-            <button key={a.id} className="strip-card" onClick={()=>a.tier===1?onBook(a):window.open(a.url,"_blank")}>
-              <span className="strip-emoji">{a.emoji}</span>
-              <span className="strip-name">{a.name}</span>
-              <span className="strip-price">from £{Math.round(a.price*(1+MARKUP_PCT/100))}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+<section className="hero">
+  <div className="hero-glow" aria-hidden="true" />
+  <div className="hero-grid">
+    <div className="hero-in">
+      <p className="eyebrow">Across the UK · 22 experiences</p>
+      <h1 className="hero-h1">
+        Something to do<br/>in the UK,{" "}
+        <span className="rot-wrap"><span key={word} className="rot">{ROTATING[word]}</span></span>
+      </h1>
+      <p className="hero-sub">Skip the fifteen phone calls. Filter by beginner-friendly, solo, budget and vibe — then book in minutes.</p>
+      <div className="hero-cta">
+        <a href="#grid" className="btn btn-coral">Browse experiences</a>
+        <span className="hero-trust">★ 4.7 average · no booking fees</span>
+      </div>
+    </div>
+    <div className="hero-image-wrap">
+      <img
+        src="/images/hero.jpg"
+        alt="Collage of BucketDays experiences: skydiving, off-roading, axe throwing, karaoke and comedy nights"
+        className="hero-image"
+      />
+    </div>
+  </div>
+  {/* featured ticket strip */}
+  <div className="strip" aria-label="Featured">
+    {featured.map(a=>(
+      <button key={a.id} className="strip-card" onClick={()=>a.tier===1?onBook(a):window.open(a.url,"_blank")}>
+        <span className="strip-emoji">{a.emoji}</span>
+        <span className="strip-name">{a.name}</span>
+        <span className="strip-price">from £{a.price}</span>
+      </button>
+    ))}
+  </div>
+</section>
 
       {/* CONTROLS */}
       <div id="grid" className="wrap">
