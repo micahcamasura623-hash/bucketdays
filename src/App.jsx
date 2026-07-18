@@ -189,15 +189,6 @@ function Browse({onBook}){
     ))}
   </div>
 </section>
-    {featured.map(a=>(
-      <button key={a.id} className="strip-card" onClick={()=>a.tier===1?onBook(a):window.open(a.url,"_blank")}>
-        <span className="strip-emoji">{a.emoji}</span>
-        <span className="strip-name">{a.name}</span>
-        <span className="strip-price">from £{a.price}</span>
-      </button>
-    ))}
-  </div>
-</section>
 
       {/* CONTROLS */}
       <div id="grid" className="wrap">
