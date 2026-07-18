@@ -398,10 +398,10 @@ body{margin:0}
 .hdr-links a:hover{color:${C.coral}}
 @media (max-width:768px){.hdr-links{display:none}}
 /* featured strip */
-.strip{position:relative;max-width:1180px;margin:0 auto;padding:0 22px 30px;display:flex;gap:12px;overflow-x:auto;scrollbar-width:none}
+.strip{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:0 22px 30px;display:flex;gap:12px;overflow-x:auto;scrollbar-width:none}
 .strip::-webkit-scrollbar{display:none}
 .strip-card{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:170px;
-  background:${C.ink2};border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s}
+ background:rgba(31,41,66,.9);border:1px solid rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s}
 .strip-card:hover{border-color:${C.coral};transform:translateY(-2px)}
 .strip-emoji{font-size:22px}
 .strip-name{color:#fff;font-weight:600;font-size:14px}
