@@ -146,17 +146,6 @@ function Browse({onBook}){
   return (
     <main>
     {/* HEADER */}
-<header className="site-header">
-  <a href="/" className="logo-link">
-    <img src="/logo-white.png" alt="BucketDays" className="logo" />
-  </a>
-  <nav className="main-nav" aria-label="Main">
-    <a href="#grid">Experiences</a>
-    <a href="#how-it-works">How It Works</a>
-    <a href="/guides">Guides</a>
-    <a href="#contact">Contact</a>
-  </nav>
-</header>
 
 {/* HERO */}
 <section className="hero hero-bg">
