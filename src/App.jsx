@@ -162,10 +162,10 @@ function Browse({onBook}){
       <a href="#grid" className="btn btn-coral">Browse experiences</a>
     </div>
     <div className="trust-row">
-      <div className="trust-item"><span className="trust-icon">£</span><div><strong>Great Prices</strong><br/>Experiences for every budget</div></div>
-      <div className="trust-item"><span className="trust-icon">✓</span><div><strong>No Booking Fees</strong><br/>What you see is what you pay</div></div>
-      <div className="trust-item"><span className="trust-icon">🛡</span><div><strong>Personally Vetted</strong><br/>Every listing checked by us</div></div>
-    </div>
+  <div className="trust-item"><span className="trust-icon">£</span><div><strong>Great Prices</strong><br/>Experiences for every budget</div></div>
+  <div className="trust-item"><span className="trust-icon">✓</span><div><strong>No Booking Fees</strong><br/>What you see is what you pay</div></div>
+  <div className="trust-item"><span className="trust-icon">⚡</span><div><strong>Instant Confirmation</strong><br/>Book in minutes</div></div>
+</div>
   </div>
   {/* featured ticket strip */}
   <div className="strip" aria-label="Featured">
