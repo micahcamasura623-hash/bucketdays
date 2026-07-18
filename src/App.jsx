@@ -139,32 +139,50 @@ function Browse({onBook}){
 
   return (
     <main>
-      {/* HERO */}
-<section className="hero">
-  <div className="hero-glow" aria-hidden="true" />
-  <div className="hero-grid">
-    <div className="hero-in">
-      <p className="eyebrow">Across the UK · 22 experiences</p>
-      <h1 className="hero-h1">
-        Something to do<br/>in the UK,{" "}
-        <span className="rot-wrap"><span key={word} className="rot">{ROTATING[word]}</span></span>
-      </h1>
-      <p className="hero-sub">Skip the fifteen phone calls. Filter by beginner-friendly, solo, budget and vibe — then book in minutes.</p>
-      <div className="hero-cta">
-        <a href="#grid" className="btn btn-coral">Browse experiences</a>
-        <span className="hero-trust">★ 4.7 average · no booking fees</span>
-      </div>
+    {/* HEADER */}
+<header className="site-header">
+  <a href="/" className="logo-link">
+    <img src="/logo-white.png" alt="BucketDays" className="logo" />
+  </a>
+  <nav className="main-nav" aria-label="Main">
+    <a href="#grid">Experiences</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="/guides">Guides</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+{/* HERO */}
+<section className="hero hero-bg">
+  <img src="/images/hero.jpg" alt="Collage of BucketDays experiences: skydiving, off-roading, axe throwing, karaoke and comedy nights" className="hero-bg-img" />
+  <div className="hero-overlay" aria-hidden="true" />
+  <div className="hero-in">
+    <p className="eyebrow">Across the UK · 22 experiences</p>
+    <h1 className="hero-h1">
+      Something to do<br/>in the UK,{" "}
+      <span className="rot-wrap"><span key={word} className="rot">{ROTATING[word]}</span></span>
+    </h1>
+    <p className="hero-sub">Skip the fifteen phone calls. Filter by beginner-friendly, solo, budget and vibe — then book in minutes.</p>
+    <div className="hero-cta">
+      <a href="#grid" className="btn btn-coral">Browse experiences</a>
     </div>
-    <div className="hero-image-wrap">
-      <img
-        src="/images/hero.jpg"
-        alt="Collage of BucketDays experiences: skydiving, off-roading, axe throwing, karaoke and comedy nights"
-        className="hero-image"
-      />
+    <div className="trust-row">
+      <div className="trust-item"><span className="trust-icon">£</span><div><strong>Great Prices</strong><br/>Experiences for every budget</div></div>
+      <div className="trust-item"><span className="trust-icon">✓</span><div><strong>No Booking Fees</strong><br/>What you see is what you pay</div></div>
+      <div className="trust-item"><span className="trust-icon">🛡</span><div><strong>Personally Vetted</strong><br/>Every listing checked by us</div></div>
     </div>
   </div>
   {/* featured ticket strip */}
   <div className="strip" aria-label="Featured">
+    {featured.map(a=>(
+      <button key={a.id} className="strip-card" onClick={()=>a.tier===1?onBook(a):window.open(a.url,"_blank")}>
+        <span className="strip-emoji">{a.emoji}</span>
+        <span className="strip-name">{a.name}</span>
+        <span className="strip-price">from £{a.price}</span>
+      </button>
+    ))}
+  </div>
+</section>
     {featured.map(a=>(
       <button key={a.id} className="strip-card" onClick={()=>a.tier===1?onBook(a):window.open(a.url,"_blank")}>
         <span className="strip-emoji">{a.emoji}</span>
