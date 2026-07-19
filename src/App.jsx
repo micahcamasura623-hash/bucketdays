@@ -126,22 +126,7 @@ function Header({onHome}){
       </nav>
     </header>
   );
-}  return (
-    <header className="hdr">
-      <nav className="hdr-in" aria-label="Primary">
-        <button className="logo" onClick={onHome}>
-  <img src="/logo-white.png" alt="BucketDays — Find it. Book it. Go." style={{height:"42px",width:"auto",display:"block"}} />
-</button>
-<div className="hdr-links">
-  <a href="#grid">Experiences</a>
-  <a href="#how">How It Works</a>
-  <a href="/guides">Guides</a>
-  <a href="#contact">Contact</a>
-</div>
-</nav>
-    </header>
-  );
-}
+}  
 
 function Footer(){
   return (
