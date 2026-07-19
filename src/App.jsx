@@ -201,6 +201,30 @@ function Browse({onBook}){
   </div>
 </section>
 
+      {/* HOW IT WORKS */}
+<section id="how" className="how">
+  <div className="how-in">
+    <h2 className="how-h2">How it works</h2>
+    <div className="how-steps">
+      <div className="how-step">
+        <span className="how-num">1</span>
+        <h3>Browse & filter</h3>
+        <p>Search by area, price, category or vibe. Filter for beginner-friendly or solo-friendly experiences in seconds.</p>
+      </div>
+      <div className="how-step">
+        <span className="how-num">2</span>
+        <h3>Book with confidence</h3>
+        <p>Some experiences book instantly through us. Others link you straight to the trusted provider — either way, no fifteen phone calls.</p>
+      </div>
+      <div className="how-step">
+        <span className="how-num">3</span>
+        <h3>Show up and go</h3>
+        <p>Turn up, do the thing, tell everyone about it. That's the whole job.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
       {/* CONTROLS */}
       <div id="grid" className="wrap">
         <input className="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search activities or areas…" aria-label="Search" />
@@ -406,6 +430,14 @@ body{margin:0}
 .hero-cta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .hero-trust{font-size:13px;color:${C.inkMuted}}
 .trust-row{display:flex;flex-direction:row;flex-wrap:wrap;gap:32px;margin-top:24px}
+.how{background:${C.paper};padding:60px 22px}
+.how-in{max-width:1180px;margin:0 auto}
+.how-h2{font-family:'Anton',sans-serif;font-weight:400;font-size:32px;color:${C.ink};margin:0 0 32px;text-transform:uppercase;text-align:center}
+.how-steps{display:flex;gap:32px;flex-wrap:wrap;justify-content:center}
+.how-step{flex:1 1 260px;max-width:320px;text-align:center}
+.how-num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${C.coral};color:#fff;font-weight:700;font-size:16px;margin-bottom:14px}
+.how-step h3{font-size:18px;color:${C.ink};margin:0 0 8px}
+.how-step p{font-size:14px;color:${C.muted};line-height:1.5;margin:0}
 .trust-item{display:flex;flex-direction:row;align-items:flex-start;gap:10px;max-width:220px}
 .trust-icon{font-size:20px;line-height:1.2;flex-shrink:0}
 .trust-item strong{display:block;font-size:14px;color:#fff}
