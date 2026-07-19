@@ -107,7 +107,26 @@ function setMeta(n,c){ let m=document.querySelector(`meta[name="${n}"]`); if(!m)
 
 // ── Header ───────────────────────────────────────────────
 function Header({onHome}){
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
+    <header className="hdr">
+      <nav className="hdr-in" aria-label="Primary">
+        <button className="logo" onClick={onHome}>
+          <img src="/logo-white.png" alt="BucketDays — Find it. Book it. Go." style={{height:"42px",width:"auto",display:"block"}} />
+        </button>
+        <div className={`hdr-links ${menuOpen ? "open" : ""}`}>
+          <a href="#grid" onClick={()=>setMenuOpen(false)}>Experiences</a>
+          <a href="#how" onClick={()=>setMenuOpen(false)}>How It Works</a>
+          <a href="/guides" onClick={()=>setMenuOpen(false)}>Guides</a>
+          <a href="#contact" onClick={()=>setMenuOpen(false)}>Contact</a>
+        </div>
+        <button className="hdr-burger" aria-label="Menu" onClick={()=>setMenuOpen(m=>!m)}>
+          <span></span><span></span><span></span>
+        </button>
+      </nav>
+    </header>
+  );
+}  return (
     <header className="hdr">
       <nav className="hdr-in" aria-label="Primary">
         <button className="logo" onClick={onHome}>
@@ -448,6 +467,28 @@ body{margin:0}
 .hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg, ${C.ink} 0%, rgba(20,27,46,.88) 45%, rgba(20,27,46,.4) 75%);z-index:1}
 .hero-in{position:relative;z-index:2}
 .hdr-links{display:flex;gap:28px;align-items:center}
+.hdr-links a{color:#fff;text-decoration:none;font-size:14px;font-weight:600}
+.hdr-links a:hover{color:${C.coral}}
+.hdr-burger{display:none;flex-direction:column;justify-content:center;gap:5px;background:none;border:none;cursor:pointer;padding:6px}
+.hdr-burger span{width:24px;height:2px;background:#fff;display:block}
+
+@media (max-width:768px){
+  .hdr-burger{display:flex}
+  .hdr-links{
+    display:none;
+    position:absolute;
+    top:100%;
+    left:0;
+    right:0;
+    flex-direction:column;
+    background:${C.ink};
+    padding:20px 22px;
+    gap:18px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .hdr-links.open{display:flex}
+  .hdr{position:relative}
+}
 .hdr-links a{color:#fff;text-decoration:none;font-size:14px;font-weight:600}
 .hdr-links a:hover{color:${C.coral}}
 @media (max-width:768px){.hdr-links{display:none}}
