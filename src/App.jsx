@@ -59,13 +59,6 @@ export default function App(){
 
   useEffect(()=>{
     document.title = "BucketDays — Things to do across the UK, tonight, this weekend & beyond";
-    useEffect(()=>{
-  if(window.location.hash){
-    const id = window.location.hash.slice(1);
-    const el = document.getElementById(id);
-    if(el) setTimeout(()=>el.scrollIntoView({behavior:"smooth"}), 100);
-  }
-},[]);
     setMeta("description","Discover and book experiences across the UK in minutes. Filter by beginner-friendly, solo, budget and category — adrenaline, flying, food, spa, days out and more.");
     const ld={ "@context":"https://schema.org","@type":"ItemList","name":"Things to do in the UK",
       "itemListElement":ACTIVITIES.slice(0,10).map((a,i)=>({"@type":"ListItem","position":i+1,
