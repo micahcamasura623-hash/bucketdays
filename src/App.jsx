@@ -74,7 +74,7 @@ export default function App(){
   return (
     <div style={{ background:C.paper, minHeight:"100vh", color:C.ink, fontFamily:"'Inter', system-ui, sans-serif" }}>
       <style>{CSS}</style>
-      <Header onHome={()=>setView("browse")} />
+      <Header onHome={()=>{ setView("browse"); window.scrollTo({top:0, behavior:"smooth"}); history.pushState("", document.title, window.location.pathname); }} />
       {view==="browse" ? <Browse onBook={startBooking}/> : <Booking activity={bookingActivity} onBack={()=>setView("browse")} />}
      {/* CONTACT */}
 <section id="contact" className="contact">
