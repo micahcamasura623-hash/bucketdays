@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";import { supabase } from './supabaseClient';
 
 // ════════════════════════════════════════════════════════════════
 //  GOLONDON — redesigned for appeal + conversion
@@ -305,13 +305,29 @@ function Browse({onBook}){
 // ── Booking ──────────────────────────────────────────────
 function Booking({activity,onBack}){
   const [step,setStep]=useState(1);
-  const [vY,setVY]=useState(2026);
-  const [vM,setVM]=useState(5);
+  const [vY,setVY]=useState(new Date().getFullYear());
+  const [vM,setVM]=useState(new Date().getMonth());
   const [sel,setSel]=useState(null);
+  const [slots,setSlots]=useState([]);
+  const [selSlot,setSelSlot]=useState(null);
+  const [loadingSlots,setLoadingSlots]=useState(true);
   const [form,setForm]=useState({name:"",email:"",people:1});
+  const [submitting,setSubmitting]=useState(false);
+  const [bookingError,setBookingError]=useState("");
 
-  const price=Math.round(activity.price*(1+MARKUP_PCT/100));
-  const margin=price-activity.price;
+  useEffect(()=>{
+    let active=true;
+    setLoadingSlots(true);
+    supabase.from('availability_slots').select('*').eq('activity_id',activity.id).order('date').order('time')
+      .then(({data,error})=>{
+        if(!active) return;
+        if(!error) setSlots(data||[]);
+        setLoadingSlots(false);
+      });
+    return ()=>{active=false;};
+  },[activity.id]);
+
+  const price=activity.price;
   const total=price*form.people;
 
   const first=new Date(vY,vM,1); let sd=first.getDay()-1; if(sd<0)sd=6;
@@ -321,6 +337,34 @@ function Booking({activity,onBack}){
   const shift=d=>{let m=vM+d,y=vY; if(m<0){m=11;y--} if(m>11){m=0;y++} setVM(m);setVY(y);};
   const fmt=d=> d?`${DOW[(d.getDay()+6)%7]} ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`:"";
 
+  const slotsForDay=(d)=>{
+    if(!d) return [];
+    const dateStr=new Date(vY,vM,d).toISOString().slice(0,10);
+    return slots.filter(s=>s.date===dateStr && s.spots_booked<s.capacity);
+  };
+
+  const daySlots = sel ? slots.filter(s=>{
+    const sd2=new Date(s.date+"T00:00:00");
+    return sd2.getFullYear()===sel.getFullYear() && sd2.getMonth()===sel.getMonth() && sd2.getDate()===sel.getDate() && s.spots_booked<s.capacity;
+  }) : [];
+
+  async function confirmBooking(){
+    if(!selSlot) return;
+    setSubmitting(true);
+    setBookingError("");
+    const { error: insertErr } = await supabase.from('bookings').insert({
+      slot_id: selSlot.id,
+      activity_id: activity.id,
+      customer_name: form.name,
+      customer_email: form.email,
+    });
+    if(insertErr){ setBookingError("Something went wrong — please try again or contact us."); setSubmitting(false); return; }
+    const { error: updateErr } = await supabase.from('availability_slots').update({ spots_booked: selSlot.spots_booked + form.people }).eq('id', selSlot.id);
+    setSubmitting(false);
+    if(updateErr){ setBookingError("Booked, but we couldn't update availability — we'll confirm manually."); }
+    setStep(4);
+  }
+
   return (
     <main className="book-wrap">
       <button className="btn btn-ghost sm" onClick={onBack} style={{marginBottom:22}}>← All activities</button>
@@ -329,7 +373,7 @@ function Booking({activity,onBack}){
         <div>
           <p className="eyebrow" style={{margin:"0 0 4px"}}>Book · {activity.cat}</p>
           <h1 className="book-h1">{activity.name}</h1>
-          <p style={{color:C.muted,margin:"4px 0 0"}}>📍 {activity.area} · <span style={{color:C.gold}}>★ {activity.rating}</span></p>
+          <p style={{color:C.muted,margin:"4px 0 0"}}>📍 {activity.area}</p>
         </div>
       </div>
 
@@ -355,24 +399,45 @@ function Booking({activity,onBack}){
               {cells.map((d,i)=>{
                 const date=d?new Date(vY,vM,d):null;
                 const past=date&&date<today;
+                const available=d && !past && slotsForDay(d).length>0;
                 const on=sel&&date&&date.getTime()===sel.getTime();
-                return <button key={i} className={`cell ${on?"on":""}`} disabled={!d||past} onClick={()=>date&&!past&&setSel(date)}>{d||""}</button>;
+                return <button key={i} className={`cell ${on?"on":""}`} disabled={!available} onClick={()=>{setSel(date);setSelSlot(null);}}>{d||""}</button>
               })}
             </div>
           </div>
-          {sel && <p className="sel-line">Selected: {fmt(sel)}</p>}
-          <button className="btn btn-coral full" disabled={!sel} onClick={()=>setStep(2)} style={{marginTop:22}}>Continue</button>
+          {loadingSlots && <p style={{color:C.muted,fontSize:14}}>Loading availability…</p>}
+          {!loadingSlots && sel && (
+            <div style={{marginTop:18}}>
+              <p className="sel-line">Selected: {fmt(sel)}</p>
+              {daySlots.length===0 ? (
+                <p style={{color:C.muted,fontSize:14}}>No open times left on this day — try another date.</p>
+              ) : (
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {daySlots.map(s=>{
+                    const left=s.capacity-s.spots_booked;
+                    const on=selSlot&&selSlot.id===s.id;
+                    return (
+                      <button key={s.id} className={`btn ${on?"btn-coral":"btn-out"} sm`} onClick={()=>setSelSlot(s)}>
+                        {s.time} · {left} left
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+          <button className="btn btn-coral full" disabled={!selSlot} onClick={()=>setStep(2)} style={{marginTop:22}}>Continue</button>
         </div>
       )}
 
       {step===2 && (
         <div>
-          <label className="lbl">Full name<input className="field" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Jane Smith"/></label>
-          <label className="lbl">Email<input className="field" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="jane@email.com"/></label>
-          <label className="lbl">Number of people<input className="field" type="number" min="1" max="10" value={form.people} onChange={e=>setForm({...form,people:Math.max(1,+e.target.value||1)})}/></label>
+          <label className="lbl">Full name<input className="field" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></label>
+          <label className="lbl">Email<input className="field" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} /></label>
+          <label className="lbl">Number of people<input className="field" type="number" min="1" max={selSlot?selSlot.capacity-selSlot.spots_booked:10} value={form.people} onChange={e=>setForm({...form,people:+e.target.value})} /></label>
           <div style={{display:"flex",gap:10,marginTop:22}}>
             <button className="btn btn-ghost" onClick={()=>setStep(1)}>Back</button>
-            <button className="btn btn-coral" style={{flex:1}} disabled={!form.name||!form.email} onClick={()=>setStep(3)}>Review &amp; pay</button>
+            <button className="btn btn-coral" style={{flex:1}} disabled={!form.name||!form.email} onClick={()=>setStep(3)}>Continue</button>
           </div>
         </div>
       )}
@@ -380,14 +445,14 @@ function Booking({activity,onBack}){
       {step===3 && (
         <div>
           <div className="summary">
-            <Row l="Activity" v={activity.name}/><Row l="Date" v={fmt(sel)}/><Row l="Name" v={form.name}/><Row l="People" v={String(form.people)}/>
+            <Row l="Activity" v={activity.name}/><Row l="Date" v={fmt(sel)}/><Row l="Time" v={selSlot?selSlot.time:""}/><Row l="Name" v={form.name}/>
             <div className="sum-div"/>
             <Row l="Price per person" v={`£${price}`}/><Row l="Total" v={`£${total}`} bold/>
           </div>
-          <div className="owner">Owner view (remove before launch): provider £{activity.price} · {MARKUP_PCT}% = <strong>£{margin}/person</strong> · £{margin*form.people} margin here.</div>
-          <button className="btn btn-coral full" style={{marginTop:18}} onClick={()=>setStep(4)}>Pay £{total} →</button>
+          <button className="btn btn-coral full" style={{marginTop:18}} disabled={submitting} onClick={confirmBooking}>{submitting?"Booking…":"Confirm booking"}</button>
           <button className="btn btn-ghost full" style={{marginTop:10}} onClick={()=>setStep(2)}>Back</button>
-          <p className="proto-note">Prototype — no real payment taken. Add Stripe + backend to go live.</p>
+          {bookingError && <p style={{color:"crimson",fontSize:14,marginTop:10}}>{bookingError}</p>}
+          <p className="proto-note">Prototype — no real payment taken yet. Add Stripe to go live.</p>
         </div>
       )}
 
@@ -395,14 +460,13 @@ function Booking({activity,onBack}){
         <div className="done">
           <div className="done-tick">✓</div>
           <h2>You're booked in</h2>
-          <p>In production {form.name||"the customer"} gets a confirmation email and you get an alert to arrange <strong>{activity.name}</strong> on <strong>{fmt(sel)}</strong> with the provider.</p>
+          <p>In production {form.name||"the customer"} gets a confirmation email and you get an alert.</p>
           <button className="btn btn-coral" onClick={onBack}>Back to activities</button>
         </div>
       )}
     </main>
   );
 }
-
 function Row({l,v,bold}){ return <div className={`row ${bold?"row-b":""}`}><span>{l}</span><span>{v}</span></div>; }
 
 const CSS = `
