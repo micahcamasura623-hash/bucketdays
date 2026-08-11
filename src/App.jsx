@@ -282,11 +282,9 @@ function Browse({onBook}){
                   </div>
                 </div>
                 <div className="ticket-foot">
-                  <span className="ticket-price"><small>from</small> £{Math.round(a.price*(1+MARKUP_PCT/100))}</span>
-                  {a.tier===1
-                    ? <a className="btn btn-coral sm" href={a.url}>Book now</a>
-                    : <a className="btn btn-out sm" href={a.url} target="_blank" rel="noopener noreferrer">Check dates</a>}
-                </div>
+  <span className="ticket-price"><small>from</small> £{Math.round(a.price*(1+MARKUP_PCT/100))}</span>
+  <button className="btn btn-coral sm" onClick={()=>onBook(a)}>Book now</button>
+</div>
               </article>
             ))}
           </div>
