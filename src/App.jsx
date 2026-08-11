@@ -70,6 +70,14 @@ export default function App(){
   },[]);
 
   function startBooking(a){ setBookingActivity(a); setView("book"); window.scrollTo(0,0); }
+  useEffect(()=>{
+  const params = new URLSearchParams(window.location.search);
+  const bookId = params.get('book');
+  if(bookId){
+    const match = ACTIVITIES.find(a => a.id === Number(bookId));
+    if(match) startBooking(match);
+  }
+},[]);
 
   return (
     <div style={{ background:C.paper, minHeight:"100vh", color:C.ink, fontFamily:"'Inter', system-ui, sans-serif" }}>
