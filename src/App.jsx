@@ -381,7 +381,6 @@ function Booking({activity,onBack}){
       setSubmitting(false);
     }
   }
-  }
 
   return (
     <main className="book-wrap">
