@@ -345,7 +345,7 @@ function Booking({activity,onBack}){
 
   const slotsForDay=(d)=>{
     if(!d) return [];
-    const dateStr=new Date(vY,vM,d).toISOString().slice(0,10);
+    const dateStr=`${vY}-${String(vM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     return slots.filter(s=>s.date===dateStr && s.spots_booked<s.capacity);
   };
 
