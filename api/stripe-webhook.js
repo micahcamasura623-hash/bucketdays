@@ -23,7 +23,8 @@ export default async function handler(req, res) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { activityId, slotId } = session.metadata;
+    const { activityId, slotId, quantity } = session.metadata;
+    const qty = parseInt(quantity, 10) || 1;
     const details = session.customer_details || {};
 
     // Write the confirmed booking
@@ -47,7 +48,7 @@ export default async function handler(req, res) {
 
     await supabase
       .from('availability_slots')
-      .update({ spots_booked: (slot?.spots_booked || 0) + 1 })
+      .update({ spots_booked: (slot?.spots_booked || 0) + qty })
       .eq('id', slotId);
   }
 
