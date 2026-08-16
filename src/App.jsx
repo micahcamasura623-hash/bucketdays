@@ -358,17 +358,29 @@ function Booking({activity,onBack}){
     if(!selSlot) return;
     setSubmitting(true);
     setBookingError("");
-    const { error: insertErr } = await supabase.from('bookings').insert({
-      slot_id: selSlot.id,
-      activity_id: activity.id,
-      customer_name: form.name,
-      customer_email: form.email,
-    });
-    if(insertErr){ setBookingError("Something went wrong — please try again or contact us."); setSubmitting(false); return; }
-    const { error: updateErr } = await supabase.from('availability_slots').update({ spots_booked: selSlot.spots_booked + form.people }).eq('id', selSlot.id);
-    setSubmitting(false);
-    if(updateErr){ setBookingError("Booked, but we couldn't update availability — we'll confirm manually."); }
-    setStep(4);
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activityId: activity.id,
+          activityName: activity.name,
+          slotId: selSlot.id,
+          quantity: form.people,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        setBookingError("Something went wrong — please try again or contact us.");
+        setSubmitting(false);
+        return;
+      }
+      window.location.href = data.url; // off to Stripe Checkout
+    } catch (err) {
+      setBookingError("Something went wrong — please try again or contact us.");
+      setSubmitting(false);
+    }
+  }
   }
 
   return (
