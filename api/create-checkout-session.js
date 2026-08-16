@@ -47,9 +47,9 @@ export default async function handler(req, res) {
         product_data: { name: activityName },
         unit_amount: amount,
       },
-      quantity: 1,
+      quantity: qty,
     }],
-    metadata: { activityId: String(activityId), slotId: String(slotId) },
+    metadata: { activityId: String(activityId), slotId: String(slotId), quantity: String(qty) },
     success_url: 'https://www.bucketdays.co.uk/booking-success?session_id={CHECKOUT_SESSION_ID}',
     cancel_url: 'https://www.bucketdays.co.uk/?book=' + activityId,
   });
