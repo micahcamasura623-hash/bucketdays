@@ -470,7 +470,6 @@ function Booking({activity,onBack}){
           <button className="btn btn-coral full" style={{marginTop:18}} disabled={submitting} onClick={confirmBooking}>{submitting?"Booking…":"Confirm booking"}</button>
           <button className="btn btn-ghost full" style={{marginTop:10}} onClick={()=>setStep(2)}>Back</button>
           {bookingError && <p style={{color:"crimson",fontSize:14,marginTop:10}}>{bookingError}</p>}
-          <p className="proto-note">Prototype — no real payment taken yet. Add Stripe to go live.</p>
         </div>
       )}
 
