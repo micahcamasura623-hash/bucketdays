@@ -38,6 +38,8 @@ export default async function handler(req, res) {
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
+    billing_address_collection: 'required', // also collects full name
+    phone_number_collection: { enabled: true },
     line_items: [{
       price_data: {
         currency: 'gbp',
