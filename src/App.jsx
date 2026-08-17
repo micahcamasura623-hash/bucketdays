@@ -572,7 +572,7 @@ body{margin:0}
 .strip-price{color:${C.gold};font-size:13px;font-weight:600}
 
 /* wrap */
-.wrap{max-width:1180px;margin:0 auto;padding:32px 22px 50px}
+.wrap{max-width:1180px;margin:0 auto;padding:10px 22px 50px}
 .search{width:100%;padding:15px 18px;border-radius:13px;border:1px solid ${C.line};font-size:15px;margin-bottom:18px;background:#fff}
 .search:focus{outline:2px solid ${C.blue};outline-offset:1px}
 
