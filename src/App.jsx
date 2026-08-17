@@ -518,7 +518,7 @@ body{margin:0}
 .hero-cta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .hero-trust{font-size:13px;color:${C.inkMuted}}
 .trust-row{display:flex;flex-direction:row;flex-wrap:wrap;gap:32px;margin-top:24px}
-.how{background:${C.paper};padding:60px 22px}
+.how{background:${C.paper};padding:60px 22px 30px}
 .how-in{max-width:1180px;margin:0 auto}
 .how-h2{font-family:'Anton',sans-serif;font-weight:400;font-size:32px;color:${C.ink};margin:0 0 32px;text-transform:uppercase;text-align:center}
 .how-steps{display:flex;gap:32px;flex-wrap:wrap;justify-content:center}
