@@ -643,7 +643,7 @@ body{margin:0}
 .seo h2{font-family:'Anton',sans-serif;font-weight:400;font-size:26px;letter-spacing:.01em;text-transform:uppercase;margin:0 0 14px}
 .seo p{font-size:15px;color:#495062;line-height:1.7;margin:0 0 14px}
 .seo strong{color:${C.ink}}
-.contact{background:${C.paper};padding:100px 22px 60px}
+.contact{background:${C.cream};padding:70px 22px 60px;border-top:1px solid ${C.line};margin-top:40px}
 .contact-in{max-width:600px;margin:0 auto}
 .contact-h2{font-family:'Anton',sans-serif;font-weight:400;font-size:32px;color:${C.ink};margin:0 0 10px;text-transform:uppercase}
 .contact-sub{color:${C.muted};font-size:15px;margin:0 0 28px;line-height:1.5}
