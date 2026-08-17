@@ -662,7 +662,7 @@ body{margin:0}
 .ftr-base{border-top:1px solid rgba(255,255,255,.08);padding:16px 22px;text-align:center;font-size:12px;color:${C.inkMuted};max-width:1180px;margin:0 auto}
 
 /* booking */
-.book-wrap{max-width:680px;margin:0 auto;padding:34px 20px 60px}
+.book-wrap{max-width:680px;margin:0 auto;padding:34px 20px 60px;background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid ${C.line}}
 .book-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:26px}
 .book-emoji{font-size:46px;line-height:1}
 .book-h1{font-family:'Anton',sans-serif;font-weight:400;font-size:34px;letter-spacing:.01em;text-transform:uppercase;margin:0}
