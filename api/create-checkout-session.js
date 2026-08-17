@@ -31,7 +31,7 @@ const PRICES = {
 };
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.(405).end();
+  if (req.method !== 'POST') return res.status(405).end();
  const { activityId, activityName, slotId, quantity } = req.body;
   const amount = PRICES[activityId];
   const qty = Math.max(1, parseInt(quantity, 10) || 1);
