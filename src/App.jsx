@@ -322,6 +322,10 @@ function Booking({activity,onBack}){
   const [bookingError,setBookingError]=useState("");
 
   useEffect(()=>{
+    window.scrollTo({top:0, behavior:"smooth"});
+  }, [step]);
+
+  useEffect(()=>{
     let active=true;
     setLoadingSlots(true);
     supabase.from('availability_slots').select('*').eq('activity_id',activity.id).order('date').order('time')
