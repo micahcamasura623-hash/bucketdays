@@ -221,17 +221,14 @@ function Browse({onBook}){
       <div className="how-step">
         <span className="how-num">1</span>
         <h3>Browse & filter</h3>
-        <p>Search by area, price, category or vibe. Filter for beginner-friendly or solo-friendly experiences in seconds.</p>
       </div>
       <div className="how-step">
         <span className="how-num">2</span>
         <h3>Book with confidence</h3>
-        <p>Some experiences book instantly through us. Others link you straight to the trusted provider — either way, no fifteen phone calls.</p>
       </div>
       <div className="how-step">
         <span className="how-num">3</span>
         <h3>Show up and go</h3>
-        <p>Turn up, do the thing, tell everyone about it. That's the whole job.</p>
       </div>
     </div>
   </div>
