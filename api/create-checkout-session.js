@@ -133,23 +133,144 @@ const PRICES_VENUE = {
   "22_7": 3800,  // Lucky Voice Brighton — £38
 };
 
+// Venue postcodes (used only to label the checkout page)
+const VENUE_POSTCODES = {
+  "1_1": "BS10 7TD",
+  "1_2": "WA6 7GQ",
+  "1_3": "RH1 5QL",
+  "3_1": "MK9 3XS",
+  "3_2": "SE10 0DX",
+  "3_3": "M41 7JA",
+  "3_4": "RG22 6PG",
+  "4_1": "NG13 9HY",
+  "4_2": "PE15 0FB",
+  "4_3": "LA2 0DY",
+  "4_4": "SP4 6EB",
+  "4_5": "DN20 9NN",
+  "4_6": "PE8 6NE",
+  "4_7": "NR34 7XD",
+  "4_8": "YO16 4YB",
+  "4_9": "SP4 9SF",
+  "5_1": "EC3N 1JJ",
+  "5_2": "W6 0QU",
+  "6_1": "WD6 3AW",
+  "6_2": "CH4 0GZ",
+  "6_3": "DY7 5DY",
+  "6_4": "DY7 5DY",
+  "6_5": "SO32 1HA",
+  "6_6": "NG12 4GA",
+  "7_1": "SL7 3DP",
+  "7_2": "GL51 6SR",
+  "7_3": "WD6 3AW",
+  "7_4": "LS25 6JE",
+  "7_5": "CV35 9EU",
+  "8_1": "SO23 8SD",
+  "8_2": "ST18 0RA",
+  "8_3": "DE6 1RA",
+  "8_4": "RG27 8HY",
+  "8_5": "TF3 3BD",
+  "8_6": "BS20 0HA",
+  "9_1": "KT18 6LP",
+  "9_2": "EN2 8AA",
+  "9_3": "GU24 0PB",
+  "9_4": "SO20 6JR",
+  "10_1": "RG22 4LE",
+  "10_2": "W4 3NG",
+  "10_3": "NW1 7EA",
+  "10_4": "TQ7 1HN",
+  "10_5": "BH23 1HW",
+  "10_6": "SO31 7EF",
+  "11_1": "ST13 8SH",
+  "11_2": "NW9 7ND",
+  "11_3": "CV31 1BE",
+  "11_4": "CT3 4BP",
+  "11_5": "PH2 7JU",
+  "12_1": "E9 5LN",
+  "12_2": "E2 6GB",
+  "12_3": "E8 4EW",
+  "12_4": "SW11 5RQ",
+  "13_1": "E2 6QQ",
+  "13_2": "W6 0LD",
+  "13_3": "SW6 3DJ",
+  "13_4": "N16 8JN",
+  "13_5": "HA0 1QL",
+  "14_1": "EC2A 3EP",
+  "14_2": "WC2E 7NG",
+  "14_3": "W1T 6BA",
+  "14_4": "W1T 2JN",
+  "16_1": "RG28 7NR",
+  "16_2": "CV37 9RQ",
+  "16_3": "ME14 1HP",
+  "17_1": "BA1 1SJ",
+  "17_2": "ST15 8WF",
+  "17_3": "S43 1DQ",
+  "18_1": "N4 2HA",
+  "18_2": "HA1 4HX",
+  "18_3": "PR5 8AN",
+  "18_4": "LS4 2AZ",
+  "18_5": "EC3N 1AL",
+  "18_6": "SO14 0JW",
+  "18_7": "S8 0UJ",
+  "18_8": "B70 0DG",
+  "18_9": "W12 7HB",
+  "19_1": "E1 2LY",
+  "19_2": "SE1 7PB",
+  "21_1": "WC2B 5PD",
+  "21_2": "SW1Y 4EE",
+  "21_3": "WC2H 9LA",
+  "21_4": "SE1 9LQ",
+  "21_5": "W1D 6LQ",
+  "21_6": "WC2B 6UJ",
+  "21_7": "WC2R 2PH",
+  "22_1": "SW1E 6SQ",
+  "22_2": "W1G 0QA",
+  "22_3": "W1S 1PQ",
+  "22_4": "W1F 7NQ",
+  "22_5": "EC2M 4YP",
+  "22_6": "W1F 0SS",
+  "22_7": "BN1 1ND",
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-  const { activityId, activityName, slotId, quantity } = req.body;
+  const { activityId, activityName, slotId, quantity, image } = req.body;
   const qty = Math.max(1, parseInt(quantity, 10) || 1);
 
   // Look up the slot to find out which venue it belongs to (if any).
   // This is the server-trusted source of truth for which venue was picked —
   // never trust a venue id sent directly from the browser.
   let venueId = null;
+  let slotDate = null;
+  let slotTime = null;
   if (slotId) {
     const { data: slot } = await supabase
       .from('availability_slots')
-      .select('venue_id')
+      .select('venue_id, date, time')
       .eq('id', slotId)
       .single();
     venueId = slot?.venue_id || null;
+    slotDate = slot?.date || null;
+    slotTime = slot?.time || null;
   }
+
+  // Build the text shown on the left of the Stripe checkout page.
+  // Date/time come from the database slot, not the browser.
+  const venuePostcode = venueId ? (VENUE_POSTCODES[venueId] || null) : null;
+  const niceDate = slotDate
+    ? new Date(slotDate + 'T00:00:00Z').toLocaleDateString('en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+      })
+    : null;
+  const descParts = [];
+  if (niceDate) descParts.push(niceDate + (slotTime ? ' at ' + slotTime : ''));
+  descParts.push(qty + (qty === 1 ? ' person' : ' people'));
+  if (venuePostcode) descParts.push('Location: ' + venuePostcode);
+  const description = descParts.join('  |  ');
+
+  // Only allow images from our own /images/ folder
+  const imageUrl = (typeof image === 'string' && image.startsWith('/images/'))
+    ? 'https://www.bucketdays.co.uk' + image
+    : null;
 
   const amount = venueId ? PRICES_VENUE[venueId] : PRICES[activityId];
   if (!amount) return res.status(400).json({ error: 'Unknown activity or venue' });
@@ -161,7 +282,11 @@ export default async function handler(req, res) {
     line_items: [{
       price_data: {
         currency: 'gbp',
-        product_data: { name: activityName },
+        product_data: {
+          name: activityName,
+          description,
+          ...(imageUrl ? { images: [imageUrl] } : {}),
+        },
         unit_amount: amount,
       },
       quantity: qty,
@@ -171,6 +296,11 @@ export default async function handler(req, res) {
       slotId: String(slotId),
       quantity: String(qty),
       venueId: venueId ? String(venueId) : '',
+    },
+    custom_text: {
+      submit: {
+        message: "After booking, we'll email you the exact venue address and everything you need to know before you go.",
+      },
     },
     success_url: 'https://www.bucketdays.co.uk/booking-success?session_id={CHECKOUT_SESSION_ID}',
     cancel_url: 'https://www.bucketdays.co.uk/?book=' + activityId,
