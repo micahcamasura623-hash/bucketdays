@@ -527,7 +527,7 @@ function Booking({activity,onBack}){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           activityId: activity.id,
-          activityName: venue ? `${activity.name} — ${venue.name}` : activity.name,
+          activityName: venue ? `${activity.name} (${venue.postcode})` : activity.name,
           slotId: selSlot.id,
           quantity: form.people,
         }),
@@ -553,7 +553,7 @@ function Booking({activity,onBack}){
         <div>
           <p className="eyebrow" style={{margin:"0 0 4px"}}>Book · {activity.cat}</p>
           <h1 className="book-h1">{activity.name}</h1>
-          <p style={{color:C.muted,margin:"4px 0 0"}}>📍 {venue ? `${venue.address}` : activity.area}</p>
+          <p style={{color:C.muted,margin:"4px 0 0"}}>📍 {venue ? venue.postcode : activity.area}</p>
         </div>
       </div>
 
@@ -580,16 +580,14 @@ function Booking({activity,onBack}){
                   }}
                 >
                   <option value="">Select a postcode / location…</option>
-                  {venueList.slice().sort((a,b)=>a.postcode.localeCompare(b.postcode)).map(v=>(
-                    <option key={v.id} value={v.id}>{v.postcode} — {v.name} — £{v.price}</option>
+                  {venueList.filter((v,i,arr)=>arr.findIndex(x=>x.postcode===v.postcode)===i).sort((a,b)=>a.postcode.localeCompare(b.postcode)).map(v=>(
+                    <option key={v.id} value={v.id}>{v.postcode}</option>
                   ))}
                 </select>
               </label>
               {venue && (
                 <div className="venue-card">
-                  <p className="venue-card-name">{venue.name}</p>
-                  <p className="venue-card-line">📍 {venue.address}</p>
-                  {venue.phone && <p className="venue-card-line">📞 {venue.phone}</p>}
+                  <p className="venue-card-name">📍 {venue.postcode}</p>
                   {venue.duration && <p className="venue-card-line">⏱ {venue.duration}</p>}
                   {venue.requirements && <p className="venue-card-req">{venue.requirements}</p>}
                   <button className="btn btn-ghost sm" onClick={changeVenue} style={{marginTop:10}}>Change location</button>
@@ -660,7 +658,7 @@ function Booking({activity,onBack}){
         <div>
           <div className="summary">
             <Row l="Activity" v={activity.name}/>
-            {venue && <Row l="Location" v={`${venue.name} (${venue.postcode})`}/>}
+            {venue && <Row l="Location" v={venue.postcode}/>}
             <Row l="Date" v={fmt(sel)}/><Row l="Time" v={selSlot?selSlot.time:""}/><Row l="Name" v={form.name}/>
             <div className="sum-div"/>
             <Row l="Price per person" v={`£${price}`}/><Row l="Total" v={`£${total}`} bold/>
