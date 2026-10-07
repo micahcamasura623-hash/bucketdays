@@ -10,8 +10,8 @@ import React, { useState, useMemo, useEffect } from "react";import { supabase } 
 const CATEGORIES = ["All","Adrenaline","Flying","Water","Shooting","Creative","Food & Drink","Wellness","Days Out","Nightlife"];
 
 const ACTIVITIES = [
-  { id:1, name:"Rage Buggy Off-Road", cat:"Adrenaline", price:70, tier:1, beginner:true, solo:true, area:"Redhill, Surrey", rating:4.8, blurb:"Throw a roll-caged dirt buggy round a mud track. No licence needed.", emoji:"🏎️", img:"/images/rage-buggy.jpg", url:"/activities/rage-buggy.html" },
-  { id:2, name:"Off-Road Karting", cat:"Adrenaline", price:30, tier:1, beginner:true, solo:true, area:"Croydon", rating:4.4, blurb:"The cheapest adrenaline hit near London — a full day on track.", emoji:"🏁", img:"/images/off-road-karting.jpg", url:"/activities/off-road-karting.html" },
+  { id:1, name:"Rage Buggy Off-Road", cat:"Adrenaline", price:80, tier:1, beginner:true, solo:true, area:"Redhill, Surrey", rating:4.8, blurb:"Throw a roll-caged dirt buggy round a mud track. No licence needed.", emoji:"🏎️", img:"/images/rage-buggy.jpg", url:"/activities/rage-buggy.html" },
+  { id:2, name:"Off-Road Karting", cat:"Adrenaline", price:70, tier:1, beginner:true, solo:true, area:"Croydon", rating:4.4, blurb:"Chunky off-road karts, mud and a proper session on track. Beginners welcome.", emoji:"🏁", img:"/images/off-road-karting.jpg", url:"/activities/off-road-karting.html" },
   { id:3, name:"Indoor Skydiving", cat:"Adrenaline", price:55, tier:1, beginner:true, solo:true, area:"Basingstoke", rating:4.7, blurb:"Float on a column of air. Weatherproof freefall, any day.", emoji:"🪂", img:"/images/indoor-skydiving.jpg", url:"/activities/indoor-skydiving.html" },
   { id:4, name:"Tandem Skydive", cat:"Adrenaline", price:230, tier:1, beginner:true, solo:true, area:"North London", rating:4.9, blurb:"10,000ft, strapped to a pro. The one you'll never forget.", emoji:"☁️", img:"/images/tandem-skydive.jpg", url:"/activities/tandem-skydive.html" },
   { id:5, name:"Axe Throwing", cat:"Adrenaline", price:30, tier:1, beginner:true, solo:true, area:"Central London", rating:4.6, blurb:"Stick it in the bullseye. Weirdly addictive, fully coached.", emoji:"🪓", img:"/images/axe-throwing.jpg", url:"/activities/axe-throwing.html" },
@@ -24,7 +24,6 @@ const ACTIVITIES = [
   { id:12, name:"Drum Taster Lesson", cat:"Creative", price:30, tier:1, beginner:true, solo:true, area:"City of London", rating:4.9, blurb:"Adults-only studio, kit provided, play a beat in an hour.", emoji:"🥁", img:"/images/drum-taster-lesson.jpg", url:"/activities/drum-taster-lesson.html" },
   { id:13, name:"Pottery Wheel Class", cat:"Creative", price:48, tier:1, beginner:true, solo:true, area:"Hackney", rating:4.8, blurb:"Throw a bowl on the wheel. Leave with something you made.", emoji:"🏺", img:"/images/pottery-wheel-class.jpg", url:"/activities/pottery-wheel-class.html" },
   { id:14, name:"Cocktail Masterclass", cat:"Food & Drink", price:45, tier:1, beginner:true, solo:false, area:"Shoreditch", rating:4.7, blurb:"Shake three classics under a bartender's eye. Then drink them.", emoji:"🍸", img:"/images/cocktail-masterclass.jpg", url:"/activities/cocktail-masterclass.html" },
-  { id:15, name:"Bottomless Brunch", cat:"Food & Drink", price:40, tier:1, beginner:true, solo:false, area:"Soho", rating:4.5, blurb:"Two hours of free-flowing drinks and food. Bring the crew.", emoji:"🥂", img:"/images/bottomless-brunch.jpg", url:"/activities/bottomless-brunch.html" },
   { id:16, name:"Gin Tasting", cat:"Food & Drink", price:42, tier:1, beginner:true, solo:false, area:"Borough", rating:4.6, blurb:"A guided flight of craft gins with the distiller's notes.", emoji:"🍹", img:"/images/gin-tasting.jpg", url:"/activities/gin-tasting.html" },
   { id:17, name:"Spa Day", cat:"Wellness", price:89, tier:1, beginner:true, solo:true, area:"Central London", rating:4.7, blurb:"Thermal suite, a treatment, and nowhere to be. Reset.", emoji:"💆", img:"/images/spa-day.jpg", url:"/activities/spa-day.html" },
   { id:18, name:"Bouldering Session", cat:"Wellness", price:18, tier:1, beginner:true, solo:true, area:"Acton", rating:4.6, blurb:"Ropeless climbing near Ealing. Hooked by the first wall.", emoji:"🧗", img:"/images/bouldering.jpg", url:"/activities/bouldering.html" },
@@ -35,9 +34,17 @@ const ACTIVITIES = [
 ];
 const VENUES = {
   1: [
-    { id:"1_1", name:"Max Events Bristol", address:"Berwick Lodge Farm, Henbury, Bristol BS10 7TD", postcode:"BS10 7TD", phone:"+44 117 950 8080", price:95, duration:"Standard (30-60mins)", requirements:"Typically min age 16 to drive (younger as passenger). Closed-toe shoes required. Usually includes helmet, overalls, and instruction." },
-    { id:"1_2", name:"Hover Force Activity Centre", address:"Moorditch Ln, Frodsham WA6 7GQ", postcode:"WA6 7GQ", phone:"+44 1928 240444", price:95, duration:"Standard (30-60mins)", requirements:"Typically min age 16 to drive (younger as passenger). Closed-toe shoes required. Usually includes helmet, overalls, and instruction." },
-    { id:"1_3", name:"Xsite Leisure", address:"Axes Ln, Redhill RH1 5QL", postcode:"RH1 5QL", phone:"+44 1737 772548", price:95, duration:"Standard (30-60mins)", requirements:"Typically min age 16 to drive (younger as passenger). Closed-toe shoes required. Usually includes helmet, overalls, and instruction." },
+    { id:"1_1", name:"Xsite Leisure (Dirt Karts Redhill)", address:"Honeycrock Farm, Axes Lane, Salfords, Surrey RH1 5QL", postcode:"RH1 5QL", phone:"+44 1737 772548", price:80, duration:"Approx. 1 hour", requirements:"Min age 16 to drive. Parental consent needed for under-18s. All equipment included." },
+    { id:"1_2", name:"Max Events Dorchester", address:"Off Waddock Drove, Dorchester DT2 7FW", postcode:"DT2 7FW", phone:null, price:80, duration:"Approx. 30 mins for a group of up to 6", requirements:"Min age 17. Equipment included." },
+    { id:"1_3", name:"Everyman Racing Elvington", address:"Elvington Track, Elvington, Yorkshire YO41 4AU", postcode:"YO41 4AU", phone:null, price:80, duration:"12 laps", requirements:"Min age 10, height 4ft 10in to 6ft 4in, max weight 20 stone. Under-18s need parental consent. Valid full driving licence required for ages 17+. Clothing covering arms and legs and flat footwear required." },
+    { id:"1_4", name:"Everyman Racing Greetham", address:"Everyman Driving Centre, Greetham, Rutland LE15 7RH", postcode:"LE15 7RH", phone:null, price:80, duration:"12 laps", requirements:"Min age 10, height 4ft 10in to 6ft 4in, max weight 20 stone. Under-18s need parental consent. Valid full driving licence required for ages 17+. Clothing covering arms and legs and flat footwear required." },
+    { id:"1_5", name:"Dirt Karts Market Harborough", address:"Welford Rd, Sibbertoft, Market Harborough LE16 9UJ", postcode:"LE16 9UJ", phone:null, price:80, duration:"60 mins (about 30 mins driving each) for a group of 4-6", requirements:"Min age 12. All equipment included." },
+  ],
+  2: [
+    { id:"2_1", name:"Hover Force Activity Centre", address:"Brook Furlong, Frodsham, Cheshire WA6 7BT", postcode:"WA6 7BT", phone:"+44 1928 240444", price:70, duration:null, requirements:"Age and height limits apply - we'll confirm them in your booking email." },
+    { id:"2_2", name:"Xsite Leisure (Dirt Karts Redhill)", address:"Honeycrock Farm, Axes Lane, Salfords, Surrey RH1 5QL", postcode:"RH1 5QL", phone:"+44 1737 772548", price:70, duration:"Min 20 minutes driving", requirements:"Min age 16, max height 6ft 4in, max weight 18 stone. Parental consent needed for under-18s." },
+    { id:"2_3", name:"Rally Karting Centre", address:"Kings Ripton Road, Off Huntingdon Northern Bypass, Kings Ripton, Huntingdon PE28 2NX", postcode:"PE28 2NX", phone:"+44 1480 457263", price:70, duration:"15 or 30 minute session", requirements:"Age 13+. Open weekends only." },
+    { id:"2_4", name:"Exeter Karting (Escot Park)", address:"Escot Park, Ottery St Mary EX11 1LU", postcode:"EX11 1LU", phone:"+44 1392 925823", price:70, duration:"2 x 10 minute races (about 60 mins in total)", requirements:"Min age 15. No driving licence needed. Solo drivers only." },
   ],
   3: [
     { id:"3_1", name:"iFLY Milton Keynes Indoor Skydiving", address:"602 Marlborough Gate, Milton Keynes MK9 3XS", postcode:"MK9 3XS", phone:"+44 330 191 3967", price:65, duration:"2 Flights", requirements:"Typically min age 4-6. Max weight ~15-16 stone (venue-dependent). Includes flight suit, helmet, goggles, and training briefing. Included Equipment hire Flight certificate" },
@@ -214,21 +221,42 @@ export default function App(){
     s.textContent=JSON.stringify(ld);
   },[]);
 
-  function startBooking(a){ setBookingActivity(a); setView("book"); window.scrollTo(0,0); }
-  useEffect(()=>{
-  const params = new URLSearchParams(window.location.search);
-  const bookId = params.get('book');
-  if(bookId){
-    const match = ACTIVITIES.find(a => a.id === Number(bookId));
-    if(match) startBooking(match);
+  function startBooking(a){
+    setBookingActivity(a); setView("book"); window.scrollTo(0,0);
+    // add a browser-history entry so the Back button returns to the list
+    try{ window.history.pushState({view:"book",id:a.id},"","?book="+a.id); }catch(e){}
   }
-},[]);
+  function goBack(){
+    if(window.history.state && window.history.state.view==="book"){ window.history.back(); }
+    else { setView("browse"); try{ window.history.replaceState(null,"",window.location.pathname); }catch(e){} window.scrollTo(0,0); }
+  }
+  useEffect(()=>{
+    // opening a ?book=ID link (e.g. from a guide page or back from Stripe)
+    const params = new URLSearchParams(window.location.search);
+    const bookId = params.get('book');
+    if(bookId){
+      const match = ACTIVITIES.find(a => a.id === Number(bookId));
+      if(match){
+        setBookingActivity(match); setView("book");
+        try{ window.history.replaceState({view:"book",id:match.id},"","?book="+match.id); }catch(e){}
+      }
+    }
+    // browser Back / Forward buttons
+    function onPop(){
+      const id = new URLSearchParams(window.location.search).get('book');
+      const m = id ? ACTIVITIES.find(a => a.id === Number(id)) : null;
+      if(m){ setBookingActivity(m); setView("book"); } else { setView("browse"); }
+      window.scrollTo(0,0);
+    }
+    window.addEventListener("popstate", onPop);
+    return ()=>window.removeEventListener("popstate", onPop);
+  },[]);
 
   return (
     <div style={{ background:C.paper, minHeight:"100vh", color:C.ink, fontFamily:"'Inter', system-ui, sans-serif" }}>
       <style>{CSS}</style>
-      <Header onHome={()=>{ setView("browse"); window.scrollTo({top:0, behavior:"smooth"}); history.pushState("", document.title, window.location.pathname); }} />
-      {view==="browse" ? <Browse onBook={startBooking}/> : <Booking activity={bookingActivity} onBack={()=>setView("browse")} />}
+      <Header onHome={()=>{ setView("browse"); window.scrollTo({top:0, behavior:"smooth"}); if(window.location.search){ history.pushState(null, document.title, window.location.pathname); } }} />
+      {view==="browse" ? <Browse onBook={startBooking}/> : <Booking key={bookingActivity&&bookingActivity.id} activity={bookingActivity} onBack={goBack} />}
      {/* CONTACT */}
 <section id="contact" className="contact">
   <div className="contact-in">   
@@ -331,7 +359,7 @@ function Browse({onBook}){
   <img src="/images/hero.jpg" alt="Collage of BucketDays experiences: skydiving, off-roading, axe throwing, karaoke and comedy nights" className="hero-bg-img" />
   <div className="hero-overlay" aria-hidden="true" />
   <div className="hero-in">
-    <p className="eyebrow">Across the UK · 22 experiences</p>
+    <p className="eyebrow">Across the UK · 21 experiences</p>
     <h1 className="hero-h1">
       Something to do<br/>in the UK,{" "}
       <span className="rot-wrap"><span key={word} className="rot">{ROTATING[word]}</span></span>
