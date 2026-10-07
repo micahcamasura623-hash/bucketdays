@@ -581,7 +581,7 @@ function Booking({activity,onBack}){
                   }}
                 >
                   <option value="">Select a postcode / location…</option>
-                  {venueList.filter((v,i,arr)=>arr.findIndex(x=>x.postcode===v.postcode)===i).sort((a,b)=>a.postcode.localeCompare(b.postcode)).map(v=>(
+                  {venueList.filter((v,i,arr)=>arr.findIndex(x=>x.postcode===v.postcode)===i).sort((a,b)=>a.postcode.localeCompare(b.postcode,'en',{numeric:true,sensitivity:'base'})).map(v=>(
                     <option key={v.id} value={v.id}>{v.postcode}</option>
                   ))}
                 </select>
