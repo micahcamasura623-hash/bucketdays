@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { activityId, slotId, quantity } = session.metadata;
+    const { activityId, slotId, quantity, venueId } = session.metadata;
     const qty = parseInt(quantity, 10) || 1;
     const details = session.customer_details || {};
 
@@ -31,6 +31,7 @@ export default async function handler(req, res) {
     await supabase.from('bookings').insert({
       slot_id: slotId,
       activity_id: activityId,
+      venue_id: venueId || null,
       customer_name: details.name || null,
       customer_email: details.email || null,
       customer_phone: details.phone || null,
