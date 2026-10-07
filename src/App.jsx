@@ -530,6 +530,7 @@ function Booking({activity,onBack}){
           activityName: venue ? `${activity.name} (${venue.postcode})` : activity.name,
           slotId: selSlot.id,
           quantity: form.people,
+          image: activity.img,
         }),
       });
       const data = await res.json();
