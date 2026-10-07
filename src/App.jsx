@@ -451,6 +451,16 @@ function Browse({onBook}){
 }
 
 // ── Booking ──────────────────────────────────────────────
+
+// Sort UK postcodes: area letters (A-Z), then district number, then district letter, then the rest
+function pcKey(pc){
+  const m=/^([A-Z]{1,2})(\d{1,2})([A-Z]?)\s*(\d)([A-Z]{2})$/i.exec((pc||"").trim());
+  return m ? {a:m[1].toUpperCase(), n:+m[2], l:m[3].toUpperCase(), r:(m[4]+m[5]).toUpperCase()} : {a:(pc||"").toUpperCase(), n:0, l:"", r:""};
+}
+function comparePostcodes(x,y){
+  const p=pcKey(x.postcode), q=pcKey(y.postcode);
+  return p.a.localeCompare(q.a) || p.n-q.n || p.l.localeCompare(q.l) || p.r.localeCompare(q.r);
+}
 function Booking({activity,onBack}){
   const venueList = VENUES[activity.id] || null;
   const [step,setStep]=useState(1);
@@ -554,7 +564,7 @@ function Booking({activity,onBack}){
         <div>
           <p className="eyebrow" style={{margin:"0 0 4px"}}>Book · {activity.cat}</p>
           <h1 className="book-h1">{activity.name}</h1>
-          <p style={{color:C.muted,margin:"4px 0 0"}}>📍 {venue ? venue.postcode : activity.area}</p>
+          {(venue || !needsVenue) && <p style={{color:C.muted,margin:"4px 0 0"}}>📍 {venue ? venue.postcode : activity.area}</p>}
         </div>
       </div>
 
@@ -581,7 +591,7 @@ function Booking({activity,onBack}){
                   }}
                 >
                   <option value="">Select a postcode / location…</option>
-                  {venueList.filter((v,i,arr)=>arr.findIndex(x=>x.postcode===v.postcode)===i).sort((a,b)=>a.postcode.localeCompare(b.postcode,'en',{numeric:true,sensitivity:'base'})).map(v=>(
+                  {venueList.filter((v,i,arr)=>arr.findIndex(x=>x.postcode===v.postcode)===i).sort(comparePostcodes).map(v=>(
                     <option key={v.id} value={v.id}>{v.postcode}</option>
                   ))}
                 </select>
