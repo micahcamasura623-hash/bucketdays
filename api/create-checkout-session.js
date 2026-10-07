@@ -37,9 +37,15 @@ const PRICES = {
 // This is the SuggestedPrice column from the providers spreadsheet —
 // the actual price to collect, per Micah's confirmation.
 const PRICES_VENUE = {
-  "1_1": 9500,  // Max Events Bristol — £95
-  "1_2": 9500,  // Hover Force Activity Centre — £95
-  "1_3": 9500,  // Xsite Leisure — £95
+  "1_1": 8000,  // Xsite Leisure (Dirt Karts Redhill) — £80
+  "1_2": 8000,  // Max Events Dorchester — £80
+  "1_3": 8000,  // Everyman Racing Elvington — £80
+  "1_4": 8000,  // Everyman Racing Greetham — £80
+  "1_5": 8000,  // Dirt Karts Market Harborough — £80
+  "2_1": 7000,  // Hover Force Activity Centre — £70
+  "2_2": 7000,  // Xsite Leisure (Dirt Karts Redhill) — £70
+  "2_3": 7000,  // Rally Karting Centre — £70
+  "2_4": 7000,  // Exeter Karting (Escot Park) — £70
   "3_1": 6500,  // iFLY Milton Keynes Indoor Skydiving — £65
   "3_2": 6500,  // iFLY London Indoor Skydiving at The O2 — £65
   "3_3": 6500,  // iFLY Manchester Indoor Skydiving — £65
@@ -135,9 +141,15 @@ const PRICES_VENUE = {
 
 // Venue postcodes (used only to label the checkout page)
 const VENUE_POSTCODES = {
-  "1_1": "BS10 7TD",
-  "1_2": "WA6 7GQ",
-  "1_3": "RH1 5QL",
+  "1_1": "RH1 5QL",
+  "1_2": "DT2 7FW",
+  "1_3": "YO41 4AU",
+  "1_4": "LE15 7RH",
+  "1_5": "LE16 9UJ",
+  "2_1": "WA6 7BT",
+  "2_2": "RH1 5QL",
+  "2_3": "PE28 2NX",
+  "2_4": "EX11 1LU",
   "3_1": "MK9 3XS",
   "3_2": "SE10 0DX",
   "3_3": "M41 7JA",
