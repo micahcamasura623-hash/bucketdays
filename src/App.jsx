@@ -590,6 +590,41 @@ function areaForPostcode(pc){
   return AREAS.find(g=>g.code===ar) || (LONDON_AREAS.includes(ar) ? AREAS.find(g=>g.code==="LONDON") : null) || null;
 }
 
+
+// One activity card: clean by default. Choosing it asks where to book.
+function ActivityCard({a,options,onBook,lead}){
+  const [open,setOpen]=useState(false);
+  const single = options.length===1;
+  const label = (o)=> `📍 ${o.pc}${o.mi!=null ? " · "+fmtMi(o.mi) : ""}`;
+  return (
+    <div className="area-card">
+      <div className="area-card-top">
+        <span className="area-card-emoji">{a.emoji}</span>
+        <div>
+          <p className="area-card-name">{a.name}</p>
+          <p className="area-card-price">£{displayPrice(a)} per person</p>
+        </div>
+      </div>
+      {lead && <p className="area-card-lead">{lead}</p>}
+      {single ? (
+        <button className="btn btn-coral sm area-card-btn" onClick={()=>onBook(a, options[0].pc)}>Book · {label(options[0])}</button>
+      ) : (
+        <button className="btn btn-coral sm area-card-btn" onClick={()=>setOpen(o=>!o)} aria-expanded={open}>
+          {open ? "Hide locations" : `Choose where to book (${options.length})`}
+        </button>
+      )}
+      {!single && open && (
+        <div className="area-card-pcs">
+          <p className="area-card-lbl">Where would you like to go?</p>
+          {options.map(o=>(
+            <button key={o.pc} className="pc-pill" onClick={()=>onBook(a, o.pc)}>{label(o)}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AreaPlanner({onBook,userLoc,setUserLoc}){
   const [code,setCode]=useState(AREAS[0].code);
   const [pcText,setPcText]=useState("");
@@ -662,21 +697,8 @@ function AreaPlanner({onBook,userLoc,setUserLoc}){
             ) : (
               <div className="areas-grid">
                 {shown.map(n=>(
-                  <div key={n.a.id} className="area-card">
-                    <div className="area-card-top">
-                      <span className="area-card-emoji">{n.a.emoji}</span>
-                      <div>
-                        <p className="area-card-name">{n.a.name}</p>
-                        <p className="area-card-price">£{displayPrice(n.a)} per person</p>
-                      </div>
-                    </div>
-                    <p className="area-card-lbl">Nearest to you:</p>
-                    <div className="area-card-pcs">
-                      {n.opts.slice(0,3).map(o=>(
-                        <button key={o.pc} className="pc-pill" onClick={()=>onBook(n.a, o.pc)}>📍 {o.pc} · {fmtMi(o.mi)}</button>
-                      ))}
-                    </div>
-                  </div>
+                  <ActivityCard key={n.a.id} a={n.a} options={n.opts} onBook={onBook}
+                    lead={`Nearest: ${fmtMi(n.opts[0].mi)} from ${userLoc.label}`} />
                 ))}
               </div>
             )}
@@ -694,23 +716,13 @@ function AreaPlanner({onBook,userLoc,setUserLoc}){
         </div>
         <p className="areas-count"><strong>{area.items.length} activities</strong> in {area.label}</p>
         <div className="areas-grid">
-          {area.items.map(it=>(
-            <div key={it.a.id} className="area-card">
-              <div className="area-card-top">
-                <span className="area-card-emoji">{it.a.emoji}</span>
-                <div>
-                  <p className="area-card-name">{it.a.name}</p>
-                  <p className="area-card-price">£{displayPrice(it.a)} per person</p>
-                </div>
-              </div>
-              <p className="area-card-lbl">Book at:</p>
-              <div className="area-card-pcs">
-                {it.pcs.map(pc=>(
-                  <button key={pc} className="pc-pill" onClick={()=>onBook(it.a, pc)}>📍 {pc}</button>
-                ))}
-              </div>
-            </div>
-          ))}
+          {area.items.map(it=>{
+            // nearest first when we know where the customer is, otherwise by postcode
+            const opts = it.pcs.map(pc=>({pc, mi:(userLoc && COORDS[normPc(pc)]) ? miles(userLoc, COORDS[normPc(pc)]) : null}));
+            if(userLoc) opts.sort((x,y)=>(x.mi==null?1e9:x.mi)-(y.mi==null?1e9:y.mi));
+            return <ActivityCard key={it.a.id} a={it.a} options={opts} onBook={onBook}
+              lead={opts.length>1 ? `${opts.length} locations in this area` : null} />;
+          })}
         </div>
         <p className="areas-foot">Postcode areas can cover a fair distance, so check the travel time between venues.</p>
       </div>
@@ -1227,6 +1239,9 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${C.b
 .area-card-pcs{display:flex;gap:8px;flex-wrap:wrap}
 .pc-pill{cursor:pointer;border:1.5px solid ${C.ink};background:#fff;color:${C.ink};border-radius:999px;padding:7px 13px;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s}
 .pc-pill:hover{background:${C.coral};border-color:${C.coral};color:#fff}
+.area-card-lead{font-size:13px;color:${C.muted};margin:0 0 10px}
+.area-card-btn{width:100%}
+.area-card-pcs{margin-top:12px}
 .areas-h3{font-size:16px;margin:28px 0 0;color:${C.ink}}
 .near{background:#fff;border:1px solid ${C.line};border-radius:18px;padding:18px 20px;margin:6px 0 4px}
 .near-head{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
