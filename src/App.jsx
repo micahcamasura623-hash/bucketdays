@@ -183,7 +183,7 @@ function minVenuePrice(a){
 }
 function displayPrice(a){
   const m = minVenuePrice(a);
-  return m!==null ? m : Math.round(a.price*(1+MARKUP_PCT/100));
+  return m!==null ? m : a.price; // always the price actually charged
 }
 
 
@@ -208,6 +208,8 @@ const ROTATING = ["tonight","this weekend","on a budget","solo","for beginners",
 export default function App(){
   const [view,setView]=useState("browse");
   const [bookingActivity,setBookingActivity]=useState(null);
+  const [bookingPc,setBookingPc]=useState(null);
+  const [userLoc,setUserLoc]=useState(null); // {lat,lng,label} - kept in memory only
 
   useEffect(()=>{
     document.title = "BucketDays — Things to do across the UK, tonight, this weekend & beyond";
@@ -215,16 +217,16 @@ export default function App(){
     const ld={ "@context":"https://schema.org","@type":"ItemList","name":"Things to do in the UK",
       "itemListElement":ACTIVITIES.slice(0,10).map((a,i)=>({"@type":"ListItem","position":i+1,
         "item":{"@type":"Product","name":a.name,"category":a.cat,
-          "aggregateRating":{"@type":"AggregateRating","ratingValue":a.rating,"reviewCount":120},
-          "offers":{"@type":"Offer","price":a.price,"priceCurrency":"GBP"}}}))};
+          "offers":{"@type":"Offer","price":displayPrice(a),"priceCurrency":"GBP"}}}))};
     let s=document.getElementById("ld"); if(!s){s=document.createElement("script");s.id="ld";s.type="application/ld+json";document.head.appendChild(s);}
     s.textContent=JSON.stringify(ld);
   },[]);
 
-  function startBooking(a){
-    setBookingActivity(a); setView("book"); window.scrollTo(0,0);
-    // add a browser-history entry so the Back button returns to the list
-    try{ window.history.pushState({view:"book",id:a.id},"","?book="+a.id); }catch(e){}
+  function startBooking(a, pc){
+    const postcode = typeof pc==="string" ? pc : null;
+    setBookingActivity(a); setBookingPc(postcode); setView("book"); window.scrollTo(0,0);
+    // add a browser-history entry so the Back button returns to the previous page
+    try{ window.history.pushState({view:"book",id:a.id,pc:postcode},"","?book="+a.id+(postcode?"&pc="+encodeURIComponent(postcode):"")); }catch(e){}
   }
   function goBack(){
     if(window.history.state && window.history.state.view==="book"){ window.history.back(); }
@@ -237,15 +239,17 @@ export default function App(){
     if(bookId){
       const match = ACTIVITIES.find(a => a.id === Number(bookId));
       if(match){
-        setBookingActivity(match); setView("book");
-        try{ window.history.replaceState({view:"book",id:match.id},"","?book="+match.id); }catch(e){}
+        const pc0 = params.get('pc');
+        setBookingActivity(match); setBookingPc(pc0||null); setView("book");
+        try{ window.history.replaceState({view:"book",id:match.id,pc:pc0||null},"","?book="+match.id+(pc0?"&pc="+encodeURIComponent(pc0):"")); }catch(e){}
       }
     }
     // browser Back / Forward buttons
     function onPop(){
-      const id = new URLSearchParams(window.location.search).get('book');
+      const sp = new URLSearchParams(window.location.search);
+      const id = sp.get('book');
       const m = id ? ACTIVITIES.find(a => a.id === Number(id)) : null;
-      if(m){ setBookingActivity(m); setView("book"); } else { setView("browse"); }
+      if(m){ setBookingActivity(m); setBookingPc(sp.get('pc')||null); setView("book"); } else { setView("browse"); }
       window.scrollTo(0,0);
     }
     window.addEventListener("popstate", onPop);
@@ -256,7 +260,7 @@ export default function App(){
     <div style={{ background:C.paper, minHeight:"100vh", color:C.ink, fontFamily:"'Inter', system-ui, sans-serif" }}>
       <style>{CSS}</style>
       <Header onHome={()=>{ setView("browse"); window.scrollTo({top:0, behavior:"smooth"}); if(window.location.search){ history.pushState(null, document.title, window.location.pathname); } }} />
-      {view==="browse" ? <Browse onBook={startBooking}/> : <Booking key={bookingActivity&&bookingActivity.id} activity={bookingActivity} onBack={goBack} />}
+      {view==="browse" ? <Browse onBook={startBooking} userLoc={userLoc} setUserLoc={setUserLoc}/> : <Booking key={(bookingActivity&&bookingActivity.id)+"-"+(bookingPc||"")} activity={bookingActivity} initialPostcode={bookingPc} userLoc={userLoc} onSwitch={startBooking} onBack={goBack} />}
      {/* CONTACT */}
 <section id="contact" className="contact">
   <div className="contact-in">   
@@ -296,6 +300,7 @@ function Header({onHome}){
           <img src="/logo-white.png" alt="BucketDays — Find it. Book it. Go." style={{height:"42px",width:"auto",display:"block"}} />
         </button>
         <div className={`hdr-links ${menuOpen ? "open" : ""}`}>
+          <a href="#areas" onClick={()=>setMenuOpen(false)}>Plan a day</a>
           <a href="#grid" onClick={()=>setMenuOpen(false)}>Experiences</a>
           <a href="#how" onClick={()=>setMenuOpen(false)}>How It Works</a>
           <a href="/guides" onClick={()=>setMenuOpen(false)}>Guides</a>
@@ -329,7 +334,7 @@ function Footer(){
 }
 
 // ── Browse ───────────────────────────────────────────────
-function Browse({onBook}){
+function Browse({onBook,userLoc,setUserLoc}){
   const [cat,setCat]=useState("All");
   const [maxPrice,setMaxPrice]=useState(250);
   const [beginnerOnly,setBeginner]=useState(false);
@@ -364,9 +369,10 @@ function Browse({onBook}){
       Something to do<br/>in the UK,{" "}
       <span className="rot-wrap"><span key={word} className="rot">{ROTATING[word]}</span></span>
     </h1>
-    <p className="hero-sub">Skip the fifteen phone calls. Filter by beginner-friendly, solo, budget and vibe — then book in minutes.</p>
+    <p className="hero-sub">Skip the fifteen phone calls. See everything you can do in one area, combine activities, and book your whole day in minutes.</p>
     <div className="hero-cta">
-      <a href="#grid" className="btn btn-coral">Browse experiences</a>
+      <a href="#areas" className="btn btn-coral">Plan a day in your area</a>
+      <a href="#grid" className="btn btn-out-light">Browse all experiences</a>
     </div>
     <div className="trust-row">
   <div className="trust-item"><span className="trust-icon">£</span><div><strong>Great Prices</strong><br/>Experiences for every budget</div></div>
@@ -385,6 +391,8 @@ function Browse({onBook}){
     ))}
   </div>
 </section>
+
+      <AreaPlanner onBook={onBook} userLoc={userLoc} setUserLoc={setUserLoc}/>
 
       {/* HOW IT WORKS */}
 <section id="how" className="how">
@@ -444,7 +452,7 @@ function Browse({onBook}){
                 </div>
                 <div className="ticket-body">
                   <h3>{a.name}</h3>
-                  <p className="ticket-area">📍 {VENUES[a.id] ? `${VENUES[a.id].length} locations across the UK` : a.area} · <span className="star">★ {a.rating}</span></p>
+                  <p className="ticket-area">📍 {VENUES[a.id] ? `${VENUES[a.id].length} locations across the UK` : a.area}</p>
                   <p className="ticket-blurb">{a.blurb}</p>
                   <div className="ticket-tags">
                     {a.beginner && <em>Beginner</em>}
@@ -489,10 +497,231 @@ function comparePostcodes(x,y){
   const p=pcKey(x.postcode), q=pcKey(y.postcode);
   return p.a.localeCompare(q.a) || p.n-q.n || p.l.localeCompare(q.l) || p.r.localeCompare(q.r);
 }
-function Booking({activity,onBack}){
+
+
+// ── Distance: how far venues are from the customer ────────
+// Venue coordinates are looked up once (free postcodes.io service) and cached in the
+// visitor's browser. The customer's own location never leaves their device.
+const COORDS = {};
+const normPc = (pc)=> (pc||"").toUpperCase().replace(/\s+/g," ").trim();
+try{ Object.assign(COORDS, JSON.parse(window.localStorage.getItem("bd_coords_v1")||"{}")); }catch(e){}
+const ALL_VENUE_PCS = Array.from(new Set(Object.keys(VENUES).flatMap(k=>(VENUES[k]||[]).map(v=>normPc(v.postcode)))));
+async function fetchCoords(list){
+  const need = Array.from(new Set(list.map(normPc))).filter(pc=>pc && !COORDS[pc]);
+  for(let i=0;i<need.length;i+=100){
+    const chunk = need.slice(i,i+100);
+    const r = await fetch("https://api.postcodes.io/postcodes?filter=postcode,latitude,longitude",{
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({postcodes:chunk})
+    });
+    const j = await r.json();
+    (j.result||[]).forEach(x=>{ if(x && x.result && x.result.latitude!=null){ COORDS[normPc(x.query)] = {lat:x.result.latitude, lng:x.result.longitude}; } });
+  }
+  try{ window.localStorage.setItem("bd_coords_v1", JSON.stringify(COORDS)); }catch(e){}
+}
+function useCoords(list){
+  const [,force]=useState(0);
+  const key = list.join("|");
+  useEffect(()=>{
+    if(!list.length) return;
+    let on=true;
+    fetchCoords(list).then(()=>{ if(on) force(n=>n+1); }).catch(()=>{});
+    return ()=>{ on=false; };
+  },[key]);
+}
+function miles(a,b){
+  const R=3958.8, rad=Math.PI/180;
+  const dLat=(b.lat-a.lat)*rad, dLng=(b.lng-a.lng)*rad;
+  const h=Math.sin(dLat/2)**2 + Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+const fmtMi = (m)=> m<1 ? "under 1 mile" : (Math.round(m)+" mi");
+// every activity, with the venues closest to a point, nearest first
+function activitiesNear(point, excludeId){
+  const out=[];
+  Object.keys(VENUES).forEach(aid=>{
+    if(Number(aid)===excludeId) return;
+    const a=ACTIVITIES.find(x=>x.id===Number(aid)); if(!a) return;
+    const seen={}, opts=[];
+    (VENUES[aid]||[]).forEach(v=>{
+      const pc=normPc(v.postcode); if(seen[pc]) return; seen[pc]=1;
+      const c=COORDS[pc]; if(!c) return;
+      opts.push({pc:v.postcode, mi:miles(point,c)});
+    });
+    opts.sort((x,y)=>x.mi-y.mi);
+    if(opts.length) out.push({a,opts});
+  });
+  return out.sort((x,y)=>x.opts[0].mi-y.opts[0].mi);
+}
+
+// ── Areas: which activities share a postcode area ─────────
+const LONDON_AREAS = ["E","EC","N","NW","SE","SW","W","WC","HA","EN"];
+const AREA_LABELS = {
+  LONDON:"All of London", W:"West End & West London", WC:"Covent Garden & Holborn", EC:"The City", SW:"South West London",
+  SE:"South East London", E:"East London", N:"North London", NW:"North West London", HA:"Harrow & Wembley",
+  SO:"Southampton & Winchester", RG:"Reading & Basingstoke", CV:"Warwickshire", ST:"Staffordshire", RH:"Redhill, Surrey",
+  YO:"York & East Yorkshire", PE:"Peterborough & Cambridgeshire", NG:"Nottingham", WD:"Elstree & Borehamwood",
+  LS:"Leeds", S:"Sheffield & Chesterfield"
+};
+function areaOf(pc){ const m=/^([A-Z]{1,2})\d/i.exec((pc||"").trim()); return m?m[1].toUpperCase():""; }
+function buildAreas(){
+  const groups={};
+  const add=(code,aid,v)=>{ groups[code]=groups[code]||{}; (groups[code][aid]=groups[code][aid]||[]).push(v); };
+  Object.keys(VENUES).forEach(aid=>{
+    (VENUES[aid]||[]).forEach(v=>{
+      const ar=areaOf(v.postcode); if(!ar) return;
+      add(ar,aid,v);
+      if(LONDON_AREAS.includes(ar)) add("LONDON",aid,v);
+    });
+  });
+  const out=Object.keys(groups).map(code=>{
+    const items=Object.keys(groups[code]).map(aid=>{
+      const a=ACTIVITIES.find(x=>x.id===Number(aid)); if(!a) return null;
+      const seen={}; const vs=groups[code][aid].filter(v=>seen[v.postcode]?false:(seen[v.postcode]=true)).sort(comparePostcodes);
+      return {a, pcs:vs.map(v=>v.postcode)};
+    }).filter(Boolean).sort((x,y)=>x.a.name.localeCompare(y.a.name));
+    return {code, label:AREA_LABELS[code]||code, items};
+  }).filter(g=>g.items.length>=2);
+  out.sort((x,y)=> (x.code==="LONDON"?-1:0)-(y.code==="LONDON"?-1:0) || y.items.length-x.items.length || x.label.localeCompare(y.label));
+  return out;
+}
+const AREAS = buildAreas();
+function areaForPostcode(pc){
+  const ar=areaOf(pc);
+  return AREAS.find(g=>g.code===ar) || (LONDON_AREAS.includes(ar) ? AREAS.find(g=>g.code==="LONDON") : null) || null;
+}
+
+function AreaPlanner({onBook,userLoc,setUserLoc}){
+  const [code,setCode]=useState(AREAS[0].code);
+  const [pcText,setPcText]=useState("");
+  const [note,setNote]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [radius,setRadius]=useState(50);
+  const area = AREAS.find(g=>g.code===code) || AREAS[0];
+  useCoords(userLoc ? ALL_VENUE_PCS : []);
+
+  async function find(e){
+    e.preventDefault();
+    const t=normPc(pcText);
+    if(!areaOf(t)){ setNote("Enter a UK postcode, for example W1T 6BA."); return; }
+    setBusy(true); setNote("");
+    try{
+      await fetchCoords([t]);
+      const c=COORDS[t];
+      if(!c){ setNote("We couldn't find that postcode. Check it and try again."); }
+      else {
+        setUserLoc({lat:c.lat,lng:c.lng,label:t});
+        const g=areaForPostcode(t); if(g) setCode(g.code);
+      }
+    }catch(err){ setNote("We couldn't look up that postcode right now. You can still browse by area below."); }
+    setBusy(false);
+  }
+  function useMyLocation(){
+    if(!navigator.geolocation){ setNote("Your browser can't share its location. Enter a postcode instead."); return; }
+    setBusy(true); setNote("");
+    navigator.geolocation.getCurrentPosition(
+      pos=>{ setUserLoc({lat:pos.coords.latitude,lng:pos.coords.longitude,label:"your location"}); setBusy(false); },
+      ()=>{ setNote("We couldn't get your location. Enter a postcode instead."); setBusy(false); },
+      {timeout:10000}
+    );
+  }
+
+  const near = userLoc ? activitiesNear(userLoc) : [];
+  const shown = near.filter(n=> radius===0 || n.opts[0].mi<=radius);
+  const loadingNear = userLoc && near.length===0;
+
+  return (
+    <section id="areas" className="areas" aria-labelledby="areas-h2">
+      <div className="areas-in">
+        <p className="eyebrow">Make a day of it</p>
+        <h2 id="areas-h2" className="areas-h2">See what's closest to you. Combine activities nearby.</h2>
+        <p className="areas-sub">Tell us where you are and we'll show the activities nearest to you, so you can fit more into one day.</p>
+        <form className="areas-find" onSubmit={find}>
+          <input className="field areas-input" value={pcText} onChange={e=>setPcText(e.target.value)} placeholder="Enter your postcode, e.g. W6 0QU" aria-label="Your postcode" />
+          <button type="submit" className="btn btn-coral" disabled={busy}>{busy?"Finding…":"Show nearest"}</button>
+          <button type="button" className="btn btn-out" onClick={useMyLocation} disabled={busy}>📍 Use my location</button>
+        </form>
+        {note && <p className="areas-note">{note}</p>}
+
+        {userLoc && (
+          <div className="near">
+            <div className="near-head">
+              <p className="near-title"><strong>Closest to {userLoc.label}</strong></p>
+              <label className="near-radius">Within{" "}
+                <select className="field near-select" value={radius} onChange={e=>setRadius(+e.target.value)}>
+                  <option value={10}>10 miles</option>
+                  <option value={25}>25 miles</option>
+                  <option value={50}>50 miles</option>
+                  <option value={100}>100 miles</option>
+                  <option value={0}>Any distance</option>
+                </select>
+              </label>
+              <button className="btn btn-ghost sm" onClick={()=>{setUserLoc(null);setPcText("");}}>Clear</button>
+            </div>
+            {loadingNear ? <p className="areas-count">Finding the closest venues…</p> : shown.length===0 ? (
+              <p className="areas-count">Nothing within {radius} miles yet. Try a wider distance.</p>
+            ) : (
+              <div className="areas-grid">
+                {shown.map(n=>(
+                  <div key={n.a.id} className="area-card">
+                    <div className="area-card-top">
+                      <span className="area-card-emoji">{n.a.emoji}</span>
+                      <div>
+                        <p className="area-card-name">{n.a.name}</p>
+                        <p className="area-card-price">£{displayPrice(n.a)} per person</p>
+                      </div>
+                    </div>
+                    <p className="area-card-lbl">Nearest to you:</p>
+                    <div className="area-card-pcs">
+                      {n.opts.slice(0,3).map(o=>(
+                        <button key={o.pc} className="pc-pill" onClick={()=>onBook(n.a, o.pc)}>📍 {o.pc} · {fmtMi(o.mi)}</button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="areas-foot">Distances are in a straight line, so the drive will be longer. Each activity is booked separately.</p>
+          </div>
+        )}
+
+        <h3 className="areas-h3">{userLoc ? "Or browse by postcode area" : "Browse by postcode area"}</h3>
+        <div className="areas-chips" role="group" aria-label="Areas">
+          {AREAS.map(g=>(
+            <button key={g.code} className={`chip ${g.code===area.code?"on":""}`} onClick={()=>{setCode(g.code);setNote("");}}>
+              {g.label}{g.code!=="LONDON" && <span className="areas-code"> ({g.code})</span>} · {g.items.length}
+            </button>
+          ))}
+        </div>
+        <p className="areas-count"><strong>{area.items.length} activities</strong> in {area.label}</p>
+        <div className="areas-grid">
+          {area.items.map(it=>(
+            <div key={it.a.id} className="area-card">
+              <div className="area-card-top">
+                <span className="area-card-emoji">{it.a.emoji}</span>
+                <div>
+                  <p className="area-card-name">{it.a.name}</p>
+                  <p className="area-card-price">£{displayPrice(it.a)} per person</p>
+                </div>
+              </div>
+              <p className="area-card-lbl">Book at:</p>
+              <div className="area-card-pcs">
+                {it.pcs.map(pc=>(
+                  <button key={pc} className="pc-pill" onClick={()=>onBook(it.a, pc)}>📍 {pc}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="areas-foot">Postcode areas can cover a fair distance, so check the travel time between venues.</p>
+      </div>
+    </section>
+  );
+}
+
+function Booking({activity,onBack,initialPostcode,onSwitch,userLoc}){
   const venueList = VENUES[activity.id] || null;
   const [step,setStep]=useState(1);
-  const [venue,setVenue]=useState(null);
+  const [venue,setVenue]=useState(()=> (initialPostcode && venueList) ? (venueList.find(v=>v.postcode===initialPostcode)||null) : null);
   const [vY,setVY]=useState(new Date().getFullYear());
   const [vM,setVM]=useState(new Date().getMonth());
   const [sel,setSel]=useState(null);
@@ -510,6 +739,23 @@ function Booking({activity,onBack}){
   // need-a-venue gate: multi-location activities must pick a venue before
   // availability means anything
   const needsVenue = !!venueList;
+  useCoords((userLoc||venue) ? ALL_VENUE_PCS : []);
+  const uniqueVenues = venueList ? venueList.filter((v,i,arr)=>arr.findIndex(x=>x.postcode===v.postcode)===i) : [];
+  const distFromUser = (v)=> (userLoc && COORDS[normPc(v.postcode)]) ? miles(userLoc, COORDS[normPc(v.postcode)]) : null;
+  const sortedVenues = userLoc
+    ? uniqueVenues.slice().sort((x,y)=>{ const a=distFromUser(x), b=distFromUser(y); return (a==null?1e9:a)-(b==null?1e9:b) || comparePostcodes(x,y); })
+    : uniqueVenues.slice().sort(comparePostcodes);
+  // other activities close to the chosen venue (real distance when we have it, postcode area otherwise)
+  const venueCoord = venue ? COORDS[normPc(venue.postcode)] : null;
+  let nearbyItems = [], nearbyTitle = "";
+  if(venue && venueCoord){
+    nearbyItems = activitiesNear(venueCoord, activity.id).filter(n=>n.opts[0].mi<=20)
+      .map(n=>({a:n.a, pc:n.opts[0].pc, meta:`${fmtMi(n.opts[0].mi)} away · ${n.opts[0].pc}`}));
+    nearbyTitle = "Make a day of it near "+venue.postcode;
+  } else if(venue){
+    const g = areaForPostcode(venue.postcode);
+    if(g){ nearbyItems = g.items.filter(it=>it.a.id!==activity.id).map(it=>({a:it.a, pc:it.pcs[0], meta:it.pcs[0]})); nearbyTitle = "Make a day of it in "+g.label; }
+  }
   const venueChosen = !needsVenue || !!venue;
 
   useEffect(()=>{
@@ -619,9 +865,10 @@ function Booking({activity,onBack}){
                   }}
                 >
                   <option value="">Select a postcode / location…</option>
-                  {venueList.filter((v,i,arr)=>arr.findIndex(x=>x.postcode===v.postcode)===i).sort(comparePostcodes).map(v=>(
-                    <option key={v.id} value={v.id}>{v.postcode}</option>
-                  ))}
+                  {sortedVenues.map(v=>{
+                    const d=distFromUser(v);
+                    return <option key={v.id} value={v.id}>{v.postcode}{d!=null?` · ${fmtMi(d)} from you`:""}</option>;
+                  })}
                 </select>
               </label>
               {venue && (
@@ -676,6 +923,20 @@ function Booking({activity,onBack}){
             </div>
           )}
           <button className="btn btn-coral full" disabled={!selSlot} onClick={()=>setStep(2)} style={{marginTop:22}}>Continue</button>
+          {nearbyItems.length>0 && (
+            <div className="nearby">
+              <p className="nearby-h">{nearbyTitle}</p>
+              <p className="nearby-sub">Other activities you can book close by:</p>
+              <div className="nearby-list">
+                {nearbyItems.map(it=>(
+                  <button key={it.a.id} className="nearby-item" onClick={()=>onSwitch&&onSwitch(it.a, it.pc)}>
+                    <span>{it.a.emoji} {it.a.name}</span>
+                    <span className="nearby-meta">£{displayPrice(it.a)} · {it.meta}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           </>
           )}
         </div>
@@ -940,5 +1201,45 @@ body{margin:0}
 
 a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${C.blue};outline-offset:2px}
 @media (max-width:760px){.band{grid-template-columns:1fr}}
+
+.btn-out-light{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.55)}
+.btn-out-light:hover{background:rgba(255,255,255,.12)}
+.hero-cta a{text-decoration:none;display:inline-block}
+
+/* plan a day by area */
+.areas{background:${C.cream};padding:56px 22px}
+.areas-in{max-width:1180px;margin:0 auto}
+.areas-h2{font-family:'Anton',sans-serif;font-weight:400;font-size:clamp(28px,4vw,40px);text-transform:uppercase;margin:0 0 10px;color:${C.ink}}
+.areas-sub{color:${C.muted};max-width:620px;margin:0 0 20px;line-height:1.55}
+.areas-find{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.areas-input{max-width:320px;flex:1 1 220px}
+.areas-note{color:${C.coral};font-size:14px;margin:0 0 12px}
+.areas-chips{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 18px}
+.areas-code{opacity:.65;font-weight:500}
+.areas-count{margin:0 0 14px;color:${C.ink}}
+.areas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.area-card{background:#fff;border:1px solid ${C.line};border-radius:16px;padding:16px 18px}
+.area-card-top{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.area-card-emoji{font-size:30px}
+.area-card-name{font-weight:700;margin:0 0 2px;color:${C.ink}}
+.area-card-price{margin:0;font-size:14px;color:${C.muted}}
+.area-card-lbl{font-size:12px;color:${C.muted};margin:0 0 6px;text-transform:uppercase;letter-spacing:.08em}
+.area-card-pcs{display:flex;gap:8px;flex-wrap:wrap}
+.pc-pill{cursor:pointer;border:1.5px solid ${C.ink};background:#fff;color:${C.ink};border-radius:999px;padding:7px 13px;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s}
+.pc-pill:hover{background:${C.coral};border-color:${C.coral};color:#fff}
+.areas-h3{font-size:16px;margin:28px 0 0;color:${C.ink}}
+.near{background:#fff;border:1px solid ${C.line};border-radius:18px;padding:18px 20px;margin:6px 0 4px}
+.near-head{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.near-title{margin:0;font-size:17px;color:${C.ink};flex:1 1 200px}
+.near-radius{font-size:14px;color:${C.muted};display:flex;align-items:center;gap:8px}
+.near-select{width:auto;padding:8px 10px}
+.areas-foot{font-size:13px;color:${C.muted};margin:16px 0 0;max-width:680px}
+.nearby{margin-top:26px;background:${C.cream};border-radius:14px;padding:16px 18px}
+.nearby-h{font-weight:700;margin:0 0 2px;color:${C.ink}}
+.nearby-sub{font-size:13px;color:${C.muted};margin:0 0 10px}
+.nearby-list{display:flex;flex-direction:column;gap:8px}
+.nearby-item{cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;background:#fff;border:1px solid ${C.line};border-radius:10px;padding:11px 14px;font-size:14px;font-weight:600;color:${C.ink};font-family:inherit}
+.nearby-item:hover{border-color:${C.coral}}
+.nearby-meta{font-weight:500;color:${C.muted};font-size:13px;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 `;
