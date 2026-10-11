@@ -205,16 +205,24 @@ const MONTHS=["January","February","March","April","May","June","July","August",
 const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const ROTATING = ["tonight","this weekend","on a budget","solo","for beginners","near you"];
 
-// readable address for each activity, e.g. ?book=rage-buggy
+// readable addresses: /book/rage-buggy?pc=RH1+5QL, /contact, /experiences ...
 function slugOf(a){ const m=/\/activities\/([^/.]+)/.exec(a.url||""); return m ? m[1] : String(a.id); }
-function bookQuery(a,pc){ return "?book="+slugOf(a)+(pc?"&pc="+encodeURIComponent(pc):""); }
+function bookPath(a,pc){ return "/book/"+slugOf(a)+(pc?"?pc="+encodeURIComponent(pc):""); }
 function findBySlug(v){ if(!v) return null; return ACTIVITIES.find(a=>slugOf(a)===v) || ACTIVITIES.find(a=>String(a.id)===v) || null; }
-// smooth-scroll to a section without putting #section in the address bar
-function jump(e,id){
-  const el=document.getElementById(id);
-  if(e&&e.preventDefault) e.preventDefault();
-  if(el){ el.scrollIntoView({behavior:"smooth",block:"start"}); }
-  else { window.location.assign("/"+"#"+id); }
+const SECTION_PATHS = { "plan-a-day":"areas", "experiences":"grid", "how-it-works":"how", "contact":"contact" };
+const SECTION_SLUG = { areas:"plan-a-day", grid:"experiences", how:"how-it-works", contact:"contact" };
+function scrollToId(id){ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:"smooth",block:"start"}); }
+// work out what the current address means
+function readRoute(){
+  const path = window.location.pathname.replace(/\/+$/,"") || "/";
+  const sp = new URLSearchParams(window.location.search);
+  let m = /^\/book\/([^/]+)$/.exec(path);
+  if(m){ const a=findBySlug(decodeURIComponent(m[1])); if(a) return {type:"book",activity:a,pc:sp.get("pc")||null}; }
+  const legacy = sp.get("book");           // old links: /?book=1 or /?book=rage-buggy
+  if(legacy){ const a=findBySlug(legacy); if(a) return {type:"book",activity:a,pc:sp.get("pc")||null,legacy:true}; }
+  const sec = SECTION_PATHS[path.slice(1)];
+  if(sec) return {type:"section",id:sec};
+  return {type:"home"};
 }
 
 export default function App(){
@@ -243,32 +251,40 @@ export default function App(){
     const postcode = typeof pc==="string" ? pc : null;
     setBookingActivity(a); setBookingPc(postcode); setView("book"); window.scrollTo(0,0);
     // add a browser-history entry so the Back button returns to the previous page
-    try{ window.history.pushState({view:"book",id:a.id,pc:postcode},"",bookQuery(a,postcode)); }catch(e){}
+    try{ window.history.pushState({view:"book",id:a.id,pc:postcode},"",bookPath(a,postcode)); }catch(e){}
   }
   function goBack(){
     if(window.history.state && window.history.state.view==="book"){ window.history.back(); }
-    else { setView("browse"); try{ window.history.replaceState(null,"",window.location.pathname); }catch(e){} window.scrollTo(0,0); }
+    else { setView("browse"); try{ window.history.replaceState(null,"","/"); }catch(e){} window.scrollTo(0,0); }
+  }
+  // header / hero links: change the address to the section and scroll to it
+  function goSection(e,id){
+    if(e&&e.preventDefault) e.preventDefault();
+    const wasBrowse = view==="browse";
+    setView("browse");
+    try{ window.history.pushState({view:"browse"},"","/"+SECTION_SLUG[id]); }catch(err){}
+    setTimeout(()=>scrollToId(id), wasBrowse ? 0 : 150);
+  }
+  function goHome(){
+    setView("browse");
+    try{ window.history.pushState({view:"browse"},"","/"); }catch(e){}
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  function applyRoute(initial){
+    const r = readRoute();
+    if(r.type==="book"){
+      setBookingActivity(r.activity); setBookingPc(r.pc); setView("book");
+      if(r.legacy){ try{ window.history.replaceState({view:"book",id:r.activity.id,pc:r.pc},"",bookPath(r.activity,r.pc)); }catch(e){} }
+      window.scrollTo(0,0);
+    } else if(r.type==="section"){
+      setView("browse"); setTimeout(()=>scrollToId(r.id), initial?400:150);
+    } else {
+      setView("browse"); if(!initial) window.scrollTo(0,0);
+    }
   }
   useEffect(()=>{
-    // opening a ?book=ID link (e.g. from a guide page or back from Stripe)
-    const params = new URLSearchParams(window.location.search);
-    const bookId = params.get('book');
-    if(bookId){
-      const match = findBySlug(bookId);
-      if(match){
-        const pc0 = params.get('pc');
-        setBookingActivity(match); setBookingPc(pc0||null); setView("book");
-        try{ window.history.replaceState({view:"book",id:match.id,pc:pc0||null},"",bookQuery(match,pc0)); }catch(e){}
-      }
-    }
-    // browser Back / Forward buttons
-    function onPop(){
-      const sp = new URLSearchParams(window.location.search);
-      const id = sp.get('book');
-      const m = findBySlug(id);
-      if(m){ setBookingActivity(m); setBookingPc(sp.get('pc')||null); setView("book"); } else { setView("browse"); }
-      window.scrollTo(0,0);
-    }
+    applyRoute(true);                      // opening a link such as /contact or /book/rage-buggy
+    const onPop=()=>applyRoute(false);     // browser Back / Forward buttons
     window.addEventListener("popstate", onPop);
     return ()=>window.removeEventListener("popstate", onPop);
   },[]);
@@ -276,8 +292,8 @@ export default function App(){
   return (
     <div style={{ background:C.paper, minHeight:"100vh", color:C.ink, fontFamily:"'Inter', system-ui, sans-serif" }}>
       <style>{CSS}</style>
-      <Header onHome={()=>{ setView("browse"); window.scrollTo({top:0, behavior:"smooth"}); if(window.location.search){ history.pushState(null, document.title, window.location.pathname); } }} />
-      {view==="browse" ? <Browse onBook={startBooking} userLoc={userLoc} setUserLoc={setUserLoc}/> : <Booking key={(bookingActivity&&bookingActivity.id)+"-"+(bookingPc||"")} activity={bookingActivity} initialPostcode={bookingPc} userLoc={userLoc} onSwitch={startBooking} onBack={goBack} />}
+      <Header onHome={goHome} onSection={goSection} />
+      {view==="browse" ? <Browse onBook={startBooking} userLoc={userLoc} setUserLoc={setUserLoc} onSection={goSection}/> : <Booking key={(bookingActivity&&bookingActivity.id)+"-"+(bookingPc||"")} activity={bookingActivity} initialPostcode={bookingPc} userLoc={userLoc} onSwitch={startBooking} onBack={goBack} />}
      {/* CONTACT */}
 <section id="contact" className="contact">
   <div className="contact-in">   
@@ -308,7 +324,7 @@ export default function App(){
 function setMeta(n,c){ let m=document.querySelector(`meta[name="${n}"]`); if(!m){m=document.createElement("meta");m.name=n;document.head.appendChild(m);} m.content=c; }
 
 // ── Header ───────────────────────────────────────────────
-function Header({onHome}){
+function Header({onHome,onSection}){
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <header className="hdr">
@@ -317,11 +333,11 @@ function Header({onHome}){
           <img src="/logo-white.png" alt="BucketDays — Find it. Book it. Go." style={{height:"42px",width:"auto",display:"block"}} />
         </button>
         <div className={`hdr-links ${menuOpen ? "open" : ""}`}>
-          <a href="#areas" onClick={(e)=>{setMenuOpen(false);jump(e,"areas");}}>Plan a day</a>
-          <a href="#grid" onClick={(e)=>{setMenuOpen(false);jump(e,"grid");}}>Experiences</a>
-          <a href="#how" onClick={(e)=>{setMenuOpen(false);jump(e,"how");}}>How It Works</a>
+          <a href="#areas" onClick={(e)=>{setMenuOpen(false);onSection(e,"areas");}}>Plan a day</a>
+          <a href="#grid" onClick={(e)=>{setMenuOpen(false);onSection(e,"grid");}}>Experiences</a>
+          <a href="#how" onClick={(e)=>{setMenuOpen(false);onSection(e,"how");}}>How It Works</a>
           <a href="/guides" onClick={()=>setMenuOpen(false)}>Guides</a>
-          <a href="#contact" onClick={(e)=>{setMenuOpen(false);jump(e,"contact");}}>Contact</a>
+          <a href="#contact" onClick={(e)=>{setMenuOpen(false);onSection(e,"contact");}}>Contact</a>
         </div>
         <button className="hdr-burger" aria-label="Menu" onClick={()=>setMenuOpen(m=>!m)}>
           <span></span><span></span><span></span>
@@ -351,7 +367,7 @@ function Footer(){
 }
 
 // ── Browse ───────────────────────────────────────────────
-function Browse({onBook,userLoc,setUserLoc}){
+function Browse({onBook,userLoc,setUserLoc,onSection}){
   const [cat,setCat]=useState("All");
   const [maxPrice,setMaxPrice]=useState(250);
   const [beginnerOnly,setBeginner]=useState(false);
@@ -404,8 +420,8 @@ function Browse({onBook,userLoc,setUserLoc}){
     </h1>
     <p className="hero-sub">Skip the fifteen phone calls. See everything you can do in one area, combine activities, and book your whole day in minutes.</p>
     <div className="hero-cta">
-      <a href="#areas" className="btn btn-coral" onClick={(e)=>jump(e,"areas")}>Plan a day in your area</a>
-      <a href="#grid" className="btn btn-out-light" onClick={(e)=>jump(e,"grid")}>Browse all experiences</a>
+      <a href="#areas" className="btn btn-coral" onClick={(e)=>onSection(e,"areas")}>Plan a day in your area</a>
+      <a href="#grid" className="btn btn-out-light" onClick={(e)=>onSection(e,"grid")}>Browse all experiences</a>
     </div>
     <div className="trust-row">
   <div className="trust-item"><span className="trust-icon">£</span><div><strong>Great Prices</strong><br/>Experiences for every budget</div></div>
@@ -697,6 +713,7 @@ function Booking({activity,onBack,initialPostcode,onSwitch,userLoc}){
   const [selSlot,setSelSlot]=useState(null);
   const [loadingSlots,setLoadingSlots]=useState(true);
   const [form,setForm]=useState({name:"",email:"",people:1});
+  const [peopleTxt,setPeopleTxt]=useState("1");
   const [submitting,setSubmitting]=useState(false);
   const [bookingError,setBookingError]=useState("");
 
@@ -914,10 +931,18 @@ function Booking({activity,onBack,initialPostcode,onSwitch,userLoc}){
         <div>
           <label className="lbl">Full name<input className="field" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></label>
           <label className="lbl">Email<input className="field" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} /></label>
-          <label className="lbl">Number of people<input className="field" type="number" min="1" max={selSlot?selSlot.capacity-selSlot.spots_booked:10} value={form.people} onChange={e=>setForm({...form,people:+e.target.value})} /></label>
+          <label className="lbl">Number of people<input className="field" type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="off"
+            value={peopleTxt}
+            onChange={e=>{
+              const maxP = selSlot ? Math.max(1,selSlot.capacity-selSlot.spots_booked) : 10;
+              let t = e.target.value.replace(/\D/g,"").replace(/^0+/,"");
+              if(t!=="" && Number(t)>maxP) t=String(maxP);
+              setPeopleTxt(t); setForm({...form,people:t===""?0:Number(t)});
+            }}
+            onBlur={()=>{ if(!form.people){ setPeopleTxt("1"); setForm(f=>({...f,people:1})); } }} /></label>
           <div style={{display:"flex",gap:10,marginTop:22}}>
             <button className="btn btn-ghost" onClick={()=>setStep(1)}>Back</button>
-            <button className="btn btn-coral" style={{flex:1}} disabled={!form.name||!form.email} onClick={()=>setStep(3)}>Continue</button>
+            <button className="btn btn-coral" style={{flex:1}} disabled={!form.name||!form.email||form.people<1} onClick={()=>setStep(3)}>Continue</button>
           </div>
         </div>
       )}
