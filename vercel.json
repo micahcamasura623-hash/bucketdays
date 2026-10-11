@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/book/:slug", "destination": "/index.html" },
+    { "source": "/plan-a-day", "destination": "/index.html" },
+    { "source": "/experiences", "destination": "/index.html" },
+    { "source": "/how-it-works", "destination": "/index.html" },
+    { "source": "/contact", "destination": "/index.html" }
+  ]
+}
