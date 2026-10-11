@@ -205,6 +205,18 @@ const MONTHS=["January","February","March","April","May","June","July","August",
 const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const ROTATING = ["tonight","this weekend","on a budget","solo","for beginners","near you"];
 
+// readable address for each activity, e.g. ?book=rage-buggy
+function slugOf(a){ const m=/\/activities\/([^/.]+)/.exec(a.url||""); return m ? m[1] : String(a.id); }
+function bookQuery(a,pc){ return "?book="+slugOf(a)+(pc?"&pc="+encodeURIComponent(pc):""); }
+function findBySlug(v){ if(!v) return null; return ACTIVITIES.find(a=>slugOf(a)===v) || ACTIVITIES.find(a=>String(a.id)===v) || null; }
+// smooth-scroll to a section without putting #section in the address bar
+function jump(e,id){
+  const el=document.getElementById(id);
+  if(e&&e.preventDefault) e.preventDefault();
+  if(el){ el.scrollIntoView({behavior:"smooth",block:"start"}); }
+  else { window.location.assign("/"+"#"+id); }
+}
+
 export default function App(){
   const [view,setView]=useState("browse");
   const [bookingActivity,setBookingActivity]=useState(null);
@@ -222,11 +234,16 @@ export default function App(){
     s.textContent=JSON.stringify(ld);
   },[]);
 
+  useEffect(()=>{
+    if(view==="book" && bookingActivity){ document.title = "Book "+bookingActivity.name+" — BucketDays"; }
+    else { document.title = "BucketDays — Things to do across the UK, tonight, this weekend & beyond"; }
+  },[view,bookingActivity]);
+
   function startBooking(a, pc){
     const postcode = typeof pc==="string" ? pc : null;
     setBookingActivity(a); setBookingPc(postcode); setView("book"); window.scrollTo(0,0);
     // add a browser-history entry so the Back button returns to the previous page
-    try{ window.history.pushState({view:"book",id:a.id,pc:postcode},"","?book="+a.id+(postcode?"&pc="+encodeURIComponent(postcode):"")); }catch(e){}
+    try{ window.history.pushState({view:"book",id:a.id,pc:postcode},"",bookQuery(a,postcode)); }catch(e){}
   }
   function goBack(){
     if(window.history.state && window.history.state.view==="book"){ window.history.back(); }
@@ -237,18 +254,18 @@ export default function App(){
     const params = new URLSearchParams(window.location.search);
     const bookId = params.get('book');
     if(bookId){
-      const match = ACTIVITIES.find(a => a.id === Number(bookId));
+      const match = findBySlug(bookId);
       if(match){
         const pc0 = params.get('pc');
         setBookingActivity(match); setBookingPc(pc0||null); setView("book");
-        try{ window.history.replaceState({view:"book",id:match.id,pc:pc0||null},"","?book="+match.id+(pc0?"&pc="+encodeURIComponent(pc0):"")); }catch(e){}
+        try{ window.history.replaceState({view:"book",id:match.id,pc:pc0||null},"",bookQuery(match,pc0)); }catch(e){}
       }
     }
     // browser Back / Forward buttons
     function onPop(){
       const sp = new URLSearchParams(window.location.search);
       const id = sp.get('book');
-      const m = id ? ACTIVITIES.find(a => a.id === Number(id)) : null;
+      const m = findBySlug(id);
       if(m){ setBookingActivity(m); setBookingPc(sp.get('pc')||null); setView("book"); } else { setView("browse"); }
       window.scrollTo(0,0);
     }
@@ -300,11 +317,11 @@ function Header({onHome}){
           <img src="/logo-white.png" alt="BucketDays — Find it. Book it. Go." style={{height:"42px",width:"auto",display:"block"}} />
         </button>
         <div className={`hdr-links ${menuOpen ? "open" : ""}`}>
-          <a href="#areas" onClick={()=>setMenuOpen(false)}>Plan a day</a>
-          <a href="#grid" onClick={()=>setMenuOpen(false)}>Experiences</a>
-          <a href="#how" onClick={()=>setMenuOpen(false)}>How It Works</a>
+          <a href="#areas" onClick={(e)=>{setMenuOpen(false);jump(e,"areas");}}>Plan a day</a>
+          <a href="#grid" onClick={(e)=>{setMenuOpen(false);jump(e,"grid");}}>Experiences</a>
+          <a href="#how" onClick={(e)=>{setMenuOpen(false);jump(e,"how");}}>How It Works</a>
           <a href="/guides" onClick={()=>setMenuOpen(false)}>Guides</a>
-          <a href="#contact" onClick={()=>setMenuOpen(false)}>Contact</a>
+          <a href="#contact" onClick={(e)=>{setMenuOpen(false);jump(e,"contact");}}>Contact</a>
         </div>
         <button className="hdr-burger" aria-label="Menu" onClick={()=>setMenuOpen(m=>!m)}>
           <span></span><span></span><span></span>
@@ -387,8 +404,8 @@ function Browse({onBook,userLoc,setUserLoc}){
     </h1>
     <p className="hero-sub">Skip the fifteen phone calls. See everything you can do in one area, combine activities, and book your whole day in minutes.</p>
     <div className="hero-cta">
-      <a href="#areas" className="btn btn-coral">Plan a day in your area</a>
-      <a href="#grid" className="btn btn-out-light">Browse all experiences</a>
+      <a href="#areas" className="btn btn-coral" onClick={(e)=>jump(e,"areas")}>Plan a day in your area</a>
+      <a href="#grid" className="btn btn-out-light" onClick={(e)=>jump(e,"grid")}>Browse all experiences</a>
     </div>
     <div className="trust-row">
   <div className="trust-item"><span className="trust-icon">£</span><div><strong>Great Prices</strong><br/>Experiences for every budget</div></div>
