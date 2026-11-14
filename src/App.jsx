@@ -361,7 +361,7 @@ function Footer(){
           <div><h4>Explore</h4><a href="/guides/" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Guides</a><a href="mailto:hello@bucketdays.co.uk" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>hello@bucketdays.co.uk</a><a href="/refunds.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Refunds</a><a href="/terms.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Terms</a><a href="/privacy.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Privacy</a></div>
         </div>
       </div>
-      <div className="ftr-base">Prototype · “Book now” activities run through our calendar; others link to trusted partners. Prices indicative.<div style={{ marginTop:8, fontSize:12, opacity:0.8 }}>BucketDays is a trading name of Hearthlight Ventures Limited. Registered in England and Wales, company number 17578570. Registered office: 174c South Ealing Road, London, W5 4QL.</div></div>
+      <div className="ftr-base">Prototype · “Book now” activities run through our calendar; others link to trusted partners. Prices indicative.<div style={{ marginTop:8, fontSize:12, opacity:0.8 }}>BucketDays is a trading name of Hearthlight Ventures Limited. Registered in England and Wales, company number 17578570. Registered office: South Ealing Road, London W5 4QL.</div></div>
     </footer>
   );
 }
