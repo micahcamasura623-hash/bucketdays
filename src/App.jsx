@@ -443,26 +443,6 @@ function Browse({onBook,userLoc,setUserLoc,onSection}){
 
       <AreaPlanner areaCode={areaCode} onPickArea={pickArea} userLoc={userLoc} setUserLoc={setUserLoc}/>
 
-      {/* HOW IT WORKS */}
-<section id="how" className="how">
-  <div className="how-in">
-    <h2 className="how-h2">How it works</h2>
-    <div className="how-steps">
-      <div className="how-step">
-        <span className="how-num">1</span>
-        <h3>Browse & filter</h3>
-      </div>
-      <div className="how-step">
-        <span className="how-num">2</span>
-        <h3>Book with confidence</h3>
-      </div>
-      <div className="how-step">
-        <span className="how-num">3</span>
-        <h3>Show up and go</h3>
-      </div>
-    </div>
-  </div>
-</section>
 
       {/* CONTROLS */}
       <div id="grid" className="wrap">
@@ -518,7 +498,7 @@ function Browse({onBook,userLoc,setUserLoc,onSection}){
         )}
 
         {/* trust band */}
-        <section className="band">
+        <section id="how" className="band">
           <div><strong>1</strong><span>Find it with real filters — price, beginner, solo, midweek.</span></div>
           <div><strong>2</strong><span>Book the date that suits you in a couple of taps.</span></div>
           <div><strong>3</strong><span>Turn up and enjoy. We sort the rest with the provider.</span></div>
@@ -644,6 +624,7 @@ function AreaPlanner({areaCode,onPickArea,userLoc,setUserLoc}){
   const [pcText,setPcText]=useState("");
   const [note,setNote]=useState("");
   const [busy,setBusy]=useState(false);
+  const [showAllAreas,setShowAllAreas]=useState(false);
   useCoords(userLoc ? ALL_VENUE_PCS : []);
 
   async function find(e){
@@ -691,11 +672,16 @@ function AreaPlanner({areaCode,onPickArea,userLoc,setUserLoc}){
 
         <h3 className="areas-h3">Browse by postcode area</h3>
         <div className="areas-chips" role="group" aria-label="Areas">
-          {AREAS.map(g=>(
+          {AREAS.filter((g,i)=>showAllAreas || i<6 || g.code===areaCode).map(g=>(
             <button key={g.code} className={`chip ${g.code===areaCode?"on":""}`} aria-pressed={g.code===areaCode} onClick={()=>{setNote("");onPickArea(g.code===areaCode?null:g.code);}}>
               {g.label}{g.code!=="LONDON" && <span className="areas-code"> ({g.code})</span>} · {g.items.length}
             </button>
           ))}
+          {AREAS.length>6 && (
+            <button type="button" className="chip areas-more" onClick={()=>setShowAllAreas(v=>!v)} aria-expanded={showAllAreas}>
+              {showAllAreas ? "Show fewer areas" : `Show all ${AREAS.length} areas`}
+            </button>
+          )}
         </div>
       </div>
     </section>
@@ -1208,6 +1194,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${C.b
 .areas-input{max-width:320px;flex:1 1 220px}
 .areas-note{color:${C.coral};font-size:14px;margin:0 0 12px}
 .areas-chips{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 18px}
+.areas-more{border-style:dashed;font-weight:600}
 .areas-code{opacity:.65;font-weight:500}
 .linkbtn{background:none;border:0;padding:0;color:${C.coral||"#e8553d"};text-decoration:underline;cursor:pointer;font:inherit}
 .ticket-mi{color:${C.muted}}
