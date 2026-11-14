@@ -1,5 +1,7 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+import { getUsableVoucher, normaliseCode } from './_vouchers.js';
+import { completeBooking } from './stripe-webhook.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -245,7 +247,7 @@ const VENUE_POSTCODES = {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-  const { activityId, activityName, slotId, quantity, image } = req.body;
+  const { activityId, activityName, slotId, quantity, image, voucherCode, customerName, customerEmail } = req.body;
   const qty = Math.max(1, parseInt(quantity, 10) || 1);
 
   // Look up the slot to find out which venue it belongs to (if any).
@@ -287,8 +289,76 @@ export default async function handler(req, res) {
   const amount = venueId ? PRICES_VENUE[venueId] : PRICES[activityId];
   if (!amount) return res.status(400).json({ error: 'Unknown activity or venue' });
 
+  // ── Gift voucher (optional) ───────────────────────────────
+  // The voucher balance is checked on the server. The browser only sends the code.
+  const total = amount * qty;
+  let voucher = null;
+  let voucherApplied = 0;
+  if (voucherCode) {
+    voucher = await getUsableVoucher(supabase, voucherCode);
+    if (!voucher) return res.status(400).json({ error: "That voucher code isn't valid, or it has expired or been used up." });
+    voucherApplied = Math.min(voucher.balance_pence, total);
+    // Stripe can't charge less than 30p, so leave 30p to pay if the voucher almost covers it.
+    const remainder = total - voucherApplied;
+    if (remainder > 0 && remainder < 30) voucherApplied = total - 30;
+  }
+
+  // Voucher pays for everything: no Stripe payment, confirm the booking directly.
+  if (voucher && voucherApplied === total) {
+    const email = String(customerEmail || '').trim();
+    const name = String(customerName || '').trim().slice(0, 120);
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Please enter your name and a valid email address.' });
+    }
+    // Check there is still room in this slot
+    const { data: slotRow } = await supabase
+      .from('availability_slots').select('capacity, spots_booked').eq('id', slotId).single();
+    if (!slotRow || slotRow.spots_booked + qty > slotRow.capacity) {
+      return res.status(409).json({ error: 'Sorry, that time slot no longer has enough space. Please choose another.' });
+    }
+    const ref = 'voucher_' + Math.random().toString(36).slice(2, 12);
+    // Take the money from the voucher first (atomic), then confirm the booking.
+    const { data: left, error: redeemErr } = await supabase.rpc('redeem_voucher', {
+      p_code: voucher.code, p_amount: total, p_ref: ref,
+    });
+    if (redeemErr || left === null) {
+      return res.status(400).json({ error: "That voucher no longer has enough balance." });
+    }
+    try {
+      await completeBooking({
+        metadata: {
+          activityId: String(activityId), slotId: String(slotId), quantity: String(qty),
+          venueId: venueId ? String(venueId) : '',
+          voucherCode: voucher.code, voucherApplied: String(total), voucherCharged: '1',
+        },
+        details: { name, email, phone: null },
+        amountTotal: 0,
+        sessionId: ref,
+      });
+    } catch (e) {
+      console.error('Voucher booking failed, restoring credit', e);
+      await supabase.rpc('restore_voucher', { p_code: voucher.code, p_amount: total, p_ref: ref });
+      return res.status(500).json({ error: 'Something went wrong. Your voucher has not been used. Please try again.' });
+    }
+    return res.status(200).json({ url: 'https://www.bucketdays.co.uk/booking-success?session_id=' + ref });
+  }
+
+  // Voucher pays part: take the amount off the Stripe price.
+  let discounts;
+  if (voucher && voucherApplied > 0) {
+    const coupon = await stripe.coupons.create({
+      amount_off: voucherApplied,
+      currency: 'gbp',
+      duration: 'once',
+      max_redemptions: 1,
+      name: 'Gift voucher',
+    });
+    discounts = [{ coupon: coupon.id }];
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
+    ...(discounts ? { discounts } : {}),
     billing_address_collection: 'required', // also collects full name
     phone_number_collection: { enabled: true },
     line_items: [{
@@ -308,6 +378,7 @@ export default async function handler(req, res) {
       slotId: String(slotId),
       quantity: String(qty),
       venueId: venueId ? String(venueId) : '',
+      ...(voucher && voucherApplied > 0 ? { voucherCode: voucher.code, voucherApplied: String(voucherApplied) } : {}),
     },
     custom_text: {
       submit: {

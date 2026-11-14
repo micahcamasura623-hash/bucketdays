@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
+import { generateCode } from './_vouchers.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -649,7 +650,7 @@ function formatDate(dateStr) {
   }
 }
 
-async function sendEmails({ activityName, venue, slot, qty, details, amountTotal, sessionId }) {
+async function sendEmails({ activityName, venue, slot, qty, details, amountTotal, sessionId, voucherApplied = 0 }) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.log('Email not configured - skipping emails');
     return;
@@ -664,13 +665,14 @@ async function sendEmails({ activityName, venue, slot, qty, details, amountTotal
   const when = slot ? `${formatDate(slot.date)} at ${slot.time}` : 'Date to be confirmed';
   const postcode = venue ? venue.postcode : null;
   const total = amountTotal != null ? `£${(amountTotal / 100).toFixed(2)}` : '';
+  const voucherLine = voucherApplied > 0 ? `£${(voucherApplied / 100).toFixed(2)}` : '';
 
   // 1) Alert to you, with everything needed to brief the venue
   const alertHtml = `
     <h2>New booking: ${esc(activityName)}</h2>
     <p><strong>When:</strong> ${esc(when)}<br>
     <strong>People:</strong> ${qty}<br>
-    <strong>Paid:</strong> ${esc(total)}</p>
+    <strong>Paid:</strong> ${esc(total)}${voucherLine ? ` (plus ${esc(voucherLine)} paid by gift voucher)` : ''}</p>
     <p><strong>Customer:</strong> ${esc(details.name || '')}<br>
     <strong>Email:</strong> ${esc(details.email || '')}<br>
     <strong>Phone:</strong> ${esc(details.phone || '')}</p>
@@ -696,6 +698,7 @@ async function sendEmails({ activityName, venue, slot, qty, details, amountTotal
           <tr><td style="padding:4px 14px 4px 0;color:#666">When</td><td><strong>${esc(when)}</strong></td></tr>
           <tr><td style="padding:4px 14px 4px 0;color:#666">People</td><td><strong>${qty}</strong></td></tr>
           ${postcode ? `<tr><td style="padding:4px 14px 4px 0;color:#666">Location</td><td><strong>${esc(postcode)}</strong></td></tr>` : ''}
+          ${voucherLine ? `<tr><td style="padding:4px 14px 4px 0;color:#666">Gift voucher</td><td><strong>${esc(voucherLine)}</strong></td></tr>` : ''}
           <tr><td style="padding:4px 14px 4px 0;color:#666">Paid</td><td><strong>${esc(total)}</strong></td></tr>
         </table>
         <p>We'll email you the full address and everything you need to know before your day. If you have any questions in the meantime, just reply to this email.</p>
@@ -710,6 +713,171 @@ async function sendEmails({ activityName, venue, slot, qty, details, amountTotal
     });
   }
 }
+
+function getTransporter() {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return null;
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '465', 10),
+    secure: (process.env.SMTP_PORT || '465') === '465',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+}
+
+async function alertOwner(subject, html) {
+  try {
+    const t = getTransporter();
+    if (!t) return;
+    await t.sendMail({
+      from: `BucketDays <${process.env.SMTP_USER}>`,
+      to: process.env.NOTIFY_TO || process.env.SMTP_USER,
+      subject,
+      html,
+    });
+  } catch (e) {
+    console.error('Owner alert failed:', e.message);
+  }
+}
+
+// A gift voucher was bought: create the code, email the buyer, tell the owner.
+async function handleVoucherPurchase(session) {
+  // Stripe can deliver an event more than once. One voucher per session.
+  const { data: existing } = await supabase
+    .from('vouchers').select('code').eq('stripe_session_id', session.id).maybeSingle();
+  if (existing) return;
+
+  const details = session.customer_details || {};
+  const value = session.amount_total;
+  let code = null;
+  for (let i = 0; i < 5 && !code; i++) {
+    const candidate = generateCode();
+    const { error } = await supabase.from('vouchers').insert({
+      code: candidate,
+      value_pence: value,
+      balance_pence: value,
+      buyer_name: details.name || null,
+      buyer_email: details.email || null,
+      recipient_name: session.metadata.recipientName || null,
+      message: session.metadata.message || null,
+      stripe_session_id: session.id,
+    });
+    if (!error) code = candidate;
+    else if (!/duplicate|unique/i.test(error.message || '')) throw new Error('Voucher insert failed: ' + error.message);
+  }
+  if (!code) throw new Error('Could not generate a unique voucher code');
+
+  const pounds = `£${(value / 100).toFixed(2).replace(/\.00$/, '')}`;
+  const expires = new Date(Date.now() + 365 * 24 * 3600 * 1000)
+    .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' });
+  const to = session.metadata.recipientName ? ` for ${esc(session.metadata.recipientName)}` : '';
+  const msg = session.metadata.message
+    ? `<p style="background:#f6f3ee;border-radius:8px;padding:12px 14px;font-style:italic">“${esc(session.metadata.message)}”</p>` : '';
+
+  try {
+    const t = getTransporter();
+    if (t) {
+      const from = `BucketDays <${process.env.SMTP_USER}>`;
+      if (details.email) {
+        await t.sendMail({
+          from,
+          to: details.email,
+          replyTo: process.env.SMTP_USER,
+          subject: `Your BucketDays gift voucher (${pounds})`,
+          html: `
+          <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1d1d1f">
+            <h2>Your gift voucher${to}</h2>
+            <p>Thanks for your order${details.name ? ', ' + esc(details.name.split(' ')[0]) : ''}. Here is the voucher code. You can forward this email to the person you are giving it to.</p>
+            <div style="text-align:center;margin:22px 0;padding:22px;border:2px dashed #ff5a4d;border-radius:12px">
+              <div style="color:#666;font-size:13px">Gift voucher value</div>
+              <div style="font-size:30px;font-weight:bold">${esc(pounds)}</div>
+              <div style="color:#666;font-size:13px;margin-top:12px">Code</div>
+              <div style="font-size:26px;font-weight:bold;letter-spacing:2px">${esc(code)}</div>
+            </div>
+            ${msg}
+            <p><strong>How to use it:</strong> choose any experience at <a href="https://www.bucketdays.co.uk">bucketdays.co.uk</a>, pick a date, and enter the code on the last step before paying. If the booking costs more than the voucher, you pay the difference. If it costs less, the rest stays on the voucher for next time.</p>
+            <p><strong>Valid until ${esc(expires)}.</strong> The voucher can't be exchanged for cash. See our <a href="https://www.bucketdays.co.uk/terms.html">terms</a> for details.</p>
+            <p>The BucketDays team<br>hello@bucketdays.co.uk</p>
+          </div>`,
+        });
+      }
+      await t.sendMail({
+        from,
+        to: process.env.NOTIFY_TO || process.env.SMTP_USER,
+        subject: `Gift voucher sold: ${pounds}`,
+        html: `<h2>Gift voucher sold</h2><p><strong>Value:</strong> ${esc(pounds)}<br><strong>Code:</strong> ${esc(code)}<br><strong>Buyer:</strong> ${esc(details.name || '')} (${esc(details.email || '')})<br><strong>For:</strong> ${esc(session.metadata.recipientName || '')}</p><p style="color:#666;font-size:12px">Stripe session: ${esc(session.id)}</p>`,
+      });
+    }
+  } catch (err) {
+    console.error('Voucher email failed:', err.message);
+    await alertOwner(`ACTION NEEDED: voucher email failed (${code})`, `<p>A voucher was created but the email to the buyer failed. Code <strong>${esc(code)}</strong>, buyer ${esc(details.email || 'unknown')}. Please send it manually.</p>`);
+  }
+}
+
+// Confirms a booking: record it, take the spot, use any voucher credit, send emails.
+// Used by the Stripe webhook and by bookings that a voucher pays for in full.
+export async function completeBooking({ metadata, details, amountTotal, sessionId }) {
+  const { activityId, slotId, quantity, venueId } = metadata;
+  const qty = parseInt(quantity, 10) || 1;
+  const voucherCode = metadata.voucherCode || '';
+  const voucherApplied = parseInt(metadata.voucherApplied, 10) || 0;
+
+  // Write the confirmed booking
+  await supabase.from('bookings').insert({
+    slot_id: slotId,
+    activity_id: activityId,
+    venue_id: venueId || null,
+    customer_name: details.name || null,
+    customer_email: details.email || null,
+    customer_phone: details.phone || null,
+    status: 'confirmed',
+  });
+
+  // Decrement capacity (fetch-then-write - matches the no-locking
+  // approach already accepted for this calendar; double-booking risk
+  // is handled manually via backup providers, not in code)
+  const { data: slot } = await supabase
+    .from('availability_slots')
+    .select('spots_booked, date, time')
+    .eq('id', slotId)
+    .single();
+
+  await supabase
+    .from('availability_slots')
+    .update({ spots_booked: (slot?.spots_booked || 0) + qty })
+    .eq('id', slotId);
+
+  // Use up the voucher credit for a part-paid booking (full-voucher bookings
+  // are charged before this runs, so voucherCode is not set for those).
+  if (voucherCode && voucherApplied > 0 && !metadata.voucherCharged) {
+    const { data: left, error } = await supabase.rpc('redeem_voucher', {
+      p_code: voucherCode, p_amount: voucherApplied, p_ref: sessionId,
+    });
+    if (error || left === null) {
+      console.error('Voucher redeem failed after payment', voucherCode, error && error.message);
+      await alertOwner(
+        `ACTION NEEDED: voucher ${voucherCode} could not be charged`,
+        `<p>A booking (Stripe session ${esc(sessionId)}) was paid with a £${(voucherApplied / 100).toFixed(2)} discount from voucher <strong>${esc(voucherCode)}</strong>, but the voucher no longer had enough balance. The customer has already paid the reduced price. Please check the voucher and booking.</p>`
+      );
+    }
+  }
+
+  // Emails - never allowed to break the webhook
+  try {
+    await sendEmails({
+      activityName: ACTIVITY_NAMES[activityId] || 'Your BucketDays experience',
+      venue: venueId ? VENUE_INFO[venueId] : null,
+      slot,
+      qty,
+      details,
+      amountTotal,
+      sessionId,
+      voucherApplied: voucherCode ? voucherApplied : 0,
+    });
+  } catch (err) {
+    console.error('Email sending failed:', err.message);
+  }
+}
+
 
 export default async function handler(req, res) {
   const sig = req.headers['stripe-signature'];
@@ -728,48 +896,21 @@ export default async function handler(req, res) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { activityId, slotId, quantity, venueId } = session.metadata;
-    const qty = parseInt(quantity, 10) || 1;
-    const details = session.customer_details || {};
-
-    // Write the confirmed booking
-    await supabase.from('bookings').insert({
-      slot_id: slotId,
-      activity_id: activityId,
-      venue_id: venueId || null,
-      customer_name: details.name || null,
-      customer_email: details.email || null,
-      customer_phone: details.phone || null,
-      status: 'confirmed',
-    });
-
-    // Decrement capacity (fetch-then-write - matches the no-locking
-    // approach already accepted for this calendar; double-booking risk
-    // is handled manually via backup providers, not in code)
-    const { data: slot } = await supabase
-      .from('availability_slots')
-      .select('spots_booked, date, time')
-      .eq('id', slotId)
-      .single();
-
-    await supabase
-      .from('availability_slots')
-      .update({ spots_booked: (slot?.spots_booked || 0) + qty })
-      .eq('id', slotId);
-
-    // Emails - never allowed to break the webhook
-    try {
-      await sendEmails({
-        activityName: ACTIVITY_NAMES[activityId] || 'Your BucketDays experience',
-        venue: venueId ? VENUE_INFO[venueId] : null,
-        slot,
-        qty,
-        details,
+    if (session.metadata && session.metadata.type === 'voucher') {
+      try {
+        await handleVoucherPurchase(session);
+      } catch (err) {
+        console.error('Voucher purchase handling failed:', err.message);
+        await alertOwner('ACTION NEEDED: voucher purchase failed', `<p>A customer paid for a gift voucher but creating it failed (${esc(err.message)}). Stripe session: ${esc(session.id)}. Please create and send the voucher manually.</p>`);
+        return res.status(500).json({ error: 'voucher failed' }); // Stripe will retry
+      }
+    } else {
+      await completeBooking({
+        metadata: session.metadata,
+        details: session.customer_details || {},
         amountTotal: session.amount_total,
         sessionId: session.id,
       });
-    } catch (err) {
-      console.error('Email sending failed:', err.message);
     }
   }
 

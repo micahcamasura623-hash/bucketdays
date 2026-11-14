@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gift Vouchers | BucketDays</title>
+  <meta name="description" content="Give an experience. BucketDays gift vouchers from £20 to £500, valid for 12 months on any activity. Delivered by email straight after payment." />
+  <link rel="canonical" href="https://www.bucketdays.co.uk/gift-vouchers.html" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap');
+    :root { --ink:#141B2E; --paper:#FBFAF7; --coral:#FF5A4D; --blue:#3B7BFF; --line:#E4DFD3; --muted:#5A5F6E; --cream:#F3EFE6; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',system-ui,sans-serif; line-height:1.6; }
+    header { background:var(--ink); padding:16px 22px; }
+    .wrap { max-width:640px; margin:0 auto; padding:40px 22px 60px; }
+    h1 { font-family:'Anton',sans-serif; font-weight:400; font-size:clamp(32px,6vw,48px); line-height:1.08; text-transform:uppercase; margin:0 0 10px; }
+    h2 { font-family:'Anton',sans-serif; font-weight:400; font-size:22px; text-transform:uppercase; margin:34px 0 12px; }
+    p { margin:0 0 14px; font-size:17px; }
+    .lead { color:var(--muted); font-size:18px; }
+    .amounts { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0 14px; }
+    .amt { background:#fff; border:2px solid var(--line); border-radius:12px; padding:16px 0; font:inherit; font-weight:700; font-size:20px; cursor:pointer; color:var(--ink); }
+    .amt[aria-pressed="true"] { border-color:var(--coral); background:#fff3f1; }
+    label { display:block; font-weight:600; font-size:15px; margin:16px 0 0; }
+    input, textarea { width:100%; margin-top:6px; padding:13px 14px; border:1.5px solid var(--line); border-radius:10px; font:inherit; font-size:16px; background:#fff; color:var(--ink); }
+    textarea { min-height:90px; resize:vertical; }
+    .hint { color:var(--muted); font-size:14px; font-weight:400; }
+    .buy { width:100%; margin-top:24px; background:var(--coral); color:#fff; border:0; border-radius:12px; padding:16px; font:inherit; font-weight:700; font-size:18px; cursor:pointer; }
+    .buy:disabled { opacity:.6; cursor:default; }
+    .err { color:crimson; font-size:15px; margin-top:12px; }
+    ol { padding-left:22px; margin:0 0 14px; } li { margin-bottom:8px; font-size:17px; }
+    .small { color:var(--muted); font-size:14px; }
+    a { color:var(--blue); }
+    footer { border-top:1px solid var(--line); padding:24px 22px; text-align:center; color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="https://www.bucketdays.co.uk"><img src="/logo-white.png" alt="BucketDays" style="height:36px;width:auto;display:block;" /></a>
+  </header>
+
+  <div class="wrap">
+    <h1>Gift vouchers</h1>
+    <p class="lead">Give an experience instead of another thing. Choose an amount and we'll email you a code straight after payment. Forward it to whoever it's for.</p>
+
+    <h2>Choose an amount</h2>
+    <div class="amounts" id="amounts">
+      <button type="button" class="amt" data-a="25" aria-pressed="false">£25</button>
+      <button type="button" class="amt" data-a="50" aria-pressed="true">£50</button>
+      <button type="button" class="amt" data-a="100" aria-pressed="false">£100</button>
+      <button type="button" class="amt" data-a="150" aria-pressed="false">£150</button>
+      <button type="button" class="amt" data-a="250" aria-pressed="false">£250</button>
+      <button type="button" class="amt" data-a="custom" aria-pressed="false">Other</button>
+    </div>
+    <div id="customWrap" hidden>
+      <label for="custom">Amount in pounds <span class="hint">(£20 to £500, whole pounds)</span>
+        <input id="custom" type="text" inputmode="numeric" placeholder="e.g. 75" autocomplete="off" />
+      </label>
+    </div>
+
+    <label for="to">Who is it for? <span class="hint">(optional, shown in the email)</span>
+      <input id="to" type="text" maxlength="60" placeholder="e.g. Sam" />
+    </label>
+    <label for="msg">Add a message <span class="hint">(optional)</span>
+      <textarea id="msg" maxlength="300" placeholder="Happy birthday! Pick something fun."></textarea>
+    </label>
+
+    <button class="buy" id="buy" type="button">Continue to payment</button>
+    <p class="err" id="err" role="alert" hidden></p>
+    <p class="small" style="margin-top:12px">Secure payment by Stripe. You'll get the voucher code by email within a minute or two of paying.</p>
+
+    <h2>How it works</h2>
+    <ol>
+      <li>Buy a voucher and receive a code by email.</li>
+      <li>Forward the email to the person you're giving it to, or print it.</li>
+      <li>They choose any experience on BucketDays, pick a date, and enter the code before paying.</li>
+    </ol>
+
+    <h2>Good to know</h2>
+    <ul style="padding-left:22px">
+      <li>Valid for 12 months from the date of purchase.</li>
+      <li>Works on any activity. If the booking costs more, they pay the difference. If it costs less, the rest stays on the voucher.</li>
+      <li>Can't be exchanged for cash.</li>
+      <li>If you change your mind, you can cancel an unused voucher within 14 days for a full refund. See our <a href="/terms.html">terms</a> and <a href="/refunds.html">refund policy</a>.</li>
+    </ul>
+    <p><a href="/">Browse experiences</a> &middot; <a href="/guides/christmas-experience-gift-ideas-uk.html">Christmas gift ideas</a></p>
+  </div>
+
+  <footer>© 2026 BucketDays · <a href="https://www.bucketdays.co.uk">bucketdays.co.uk</a><br><span style="display:block;margin-top:6px;font-size:12px;opacity:.8">BucketDays is a trading name of Hearthlight Ventures Limited. Registered in England and Wales, company number 17578570. Registered office: South Ealing Road, London W5 4QL.</span></footer>
+
+  <script>
+    (function () {
+      var amount = 50, custom = false;
+      var btns = document.querySelectorAll('.amt');
+      var customWrap = document.getElementById('customWrap');
+      var customInput = document.getElementById('custom');
+      var err = document.getElementById('err');
+      var buy = document.getElementById('buy');
+      btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+          btns.forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+          b.setAttribute('aria-pressed', 'true');
+          custom = b.dataset.a === 'custom';
+          customWrap.hidden = !custom;
+          if (!custom) amount = Number(b.dataset.a); else customInput.focus();
+        });
+      });
+      buy.addEventListener('click', async function () {
+        err.hidden = true;
+        var a = custom ? Number(customInput.value.replace(/[^0-9]/g, '')) : amount;
+        if (!Number.isInteger(a) || a < 20 || a > 500) {
+          err.textContent = 'Please choose an amount between £20 and £500.'; err.hidden = false; return;
+        }
+        buy.disabled = true; buy.textContent = 'Taking you to payment…';
+        try {
+          var r = await fetch('/api/create-voucher-checkout', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: a, recipientName: document.getElementById('to').value, message: document.getElementById('msg').value })
+          });
+          var d = await r.json();
+          if (!r.ok || !d.url) throw new Error(d.error || 'failed');
+          window.location.href = d.url;
+        } catch (e) {
+          err.textContent = (e && e.message && e.message !== 'failed') ? e.message : 'Something went wrong. Please try again or email hello@bucketdays.co.uk.';
+          err.hidden = false; buy.disabled = false; buy.textContent = 'Continue to payment';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

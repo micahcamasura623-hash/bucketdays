@@ -336,6 +336,7 @@ function Header({onHome,onSection}){
           <a href="#areas" onClick={(e)=>{setMenuOpen(false);onSection(e,"areas");}}>Plan a day</a>
           <a href="#grid" onClick={(e)=>{setMenuOpen(false);onSection(e,"grid");}}>Experiences</a>
           <a href="#how" onClick={(e)=>{setMenuOpen(false);onSection(e,"how");}}>How It Works</a>
+          <a href="/gift-vouchers.html" onClick={()=>setMenuOpen(false)}>Gift Vouchers</a>
           <a href="/guides" onClick={()=>setMenuOpen(false)}>Guides</a>
           <a href="#contact" onClick={(e)=>{setMenuOpen(false);onSection(e,"contact");}}>Contact</a>
         </div>
@@ -358,7 +359,7 @@ function Footer(){
         <div className="ftr-cols">
           <div><h4>Explore</h4><span>Adrenaline</span><span>Flying</span><span>Food &amp; Drink</span><span>Days Out</span></div>
           <div><h4>Company</h4><span>About</span><span>How it works</span><span>List your activity</span></div>
-          <div><h4>Explore</h4><a href="/guides/" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Guides</a><a href="mailto:hello@bucketdays.co.uk" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>hello@bucketdays.co.uk</a><a href="/refunds.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Refunds</a><a href="/terms.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Terms</a><a href="/privacy.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Privacy</a></div>
+          <div><h4>Explore</h4><a href="/gift-vouchers.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Gift vouchers</a><a href="/guides/" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Guides</a><a href="mailto:hello@bucketdays.co.uk" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>hello@bucketdays.co.uk</a><a href="/refunds.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Refunds</a><a href="/terms.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Terms</a><a href="/privacy.html" style={{display:"block",fontSize:"14px",color:"#D6DAE6",marginBottom:"8px",textDecoration:"none"}}>Privacy</a></div>
         </div>
       </div>
       <div className="ftr-base">Prototype · “Book now” activities run through our calendar; others link to trusted partners. Prices indicative.<div style={{ marginTop:8, fontSize:12, opacity:0.8 }}>BucketDays is a trading name of Hearthlight Ventures Limited. Registered in England and Wales, company number 17578570. Registered office: South Ealing Road, London W5 4QL.</div></div>
@@ -702,6 +703,10 @@ function Booking({activity,onBack,initialPostcode,onSwitch,userLoc}){
   const [peopleTxt,setPeopleTxt]=useState("1");
   const [submitting,setSubmitting]=useState(false);
   const [bookingError,setBookingError]=useState("");
+  const [vInput,setVInput]=useState("");
+  const [voucher,setVoucher]=useState(null); // {code,balance}
+  const [vMsg,setVMsg]=useState("");
+  const [vBusy,setVBusy]=useState(false);
 
   useEffect(()=>{
     window.scrollTo({top:0, behavior:"smooth"});
@@ -746,6 +751,25 @@ function Booking({activity,onBack,initialPostcode,onSwitch,userLoc}){
 
   const price = venue ? venue.price : activity.price;
   const total = price*form.people;
+  const totalP = Math.round(total*100);
+  let vApplied = 0;
+  if(voucher){
+    vApplied = Math.min(Math.round(voucher.balance*100), totalP);
+    const rem = totalP - vApplied;
+    if(rem>0 && rem<30) vApplied = totalP - 30;
+  }
+  const toPay = (totalP - vApplied)/100;
+  async function applyVoucher(){
+    if(!vInput.trim()) return;
+    setVBusy(true); setVMsg("");
+    try{
+      const r = await fetch('/api/check-voucher',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:vInput})});
+      const d = await r.json();
+      if(d.valid){ setVoucher({code:vInput.trim(),balance:d.balance}); setVMsg(""); }
+      else { setVoucher(null); setVMsg("That code isn't valid, or it has expired or been used up."); }
+    }catch(e){ setVMsg("Couldn't check the code. Please try again."); }
+    setVBusy(false);
+  }
 
   const first=new Date(vY,vM,1); let sd=first.getDay()-1; if(sd<0)sd=6;
   const dim=new Date(vY,vM+1,0).getDate();
@@ -786,11 +810,14 @@ function Booking({activity,onBack,initialPostcode,onSwitch,userLoc}){
           slotId: selSlot.id,
           quantity: form.people,
           image: activity.img,
+          voucherCode: voucher ? voucher.code : undefined,
+          customerName: form.name,
+          customerEmail: form.email,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.url) {
-        setBookingError("Something went wrong — please try again or contact us.");
+        setBookingError(data && data.error ? data.error : "Something went wrong — please try again or contact us.");
         setSubmitting(false);
         return;
       }
@@ -940,9 +967,26 @@ function Booking({activity,onBack,initialPostcode,onSwitch,userLoc}){
             {venue && <Row l="Location" v={venue.postcode}/>}
             <Row l="Date" v={fmt(sel)}/><Row l="Time" v={selSlot?selSlot.time:""}/><Row l="Name" v={form.name}/>
             <div className="sum-div"/>
-            <Row l="Price per person" v={`£${price}`}/><Row l="Total" v={`£${total}`} bold/>
+            <Row l="Price per person" v={`£${price}`}/>
+            {voucher && vApplied>0 && <Row l={`Gift voucher (${voucher.code})`} v={`-£${(vApplied/100).toFixed(2).replace(/\.00$/,"")}`}/>}
+            <Row l={voucher && vApplied>0 ? "To pay" : "Total"} v={`£${(voucher && vApplied>0) ? toPay.toFixed(2).replace(/\.00$/,"") : total}`} bold/>
           </div>
-          <button className="btn btn-coral full" style={{marginTop:18}} disabled={submitting} onClick={confirmBooking}>{submitting?"Booking…":"Confirm booking"}</button>
+          <div className="voucher-box">
+            {!voucher ? (
+              <>
+                <label className="lbl" style={{margin:0}}>Have a gift voucher code?
+                  <div style={{display:"flex",gap:8,marginTop:6}}>
+                    <input className="field" style={{flex:1,textTransform:"uppercase"}} placeholder="BD-XXXX-XXXX" value={vInput} onChange={e=>setVInput(e.target.value)} />
+                    <button type="button" className="btn btn-ghost" disabled={vBusy||!vInput.trim()} onClick={applyVoucher}>{vBusy?"Checking…":"Apply"}</button>
+                  </div>
+                </label>
+                {vMsg && <p style={{color:"crimson",fontSize:14,margin:"8px 0 0"}}>{vMsg}</p>}
+              </>
+            ) : (
+              <p style={{margin:0,fontSize:14}}>✓ Voucher applied. £{voucher.balance.toFixed(2).replace(/\.00$/,"")} available. <button type="button" className="linkbtn" onClick={()=>{setVoucher(null);setVInput("");}}>Remove</button></p>
+            )}
+          </div>
+          <button className="btn btn-coral full" style={{marginTop:18}} disabled={submitting} onClick={confirmBooking}>{submitting?"Booking…":(voucher && vApplied>0 && toPay===0 ? "Confirm booking with voucher" : "Confirm booking")}</button>
           <button className="btn btn-ghost full" style={{marginTop:10}} onClick={()=>setStep(2)}>Back</button>
           {bookingError && <p style={{color:"crimson",fontSize:14,marginTop:10}}>{bookingError}</p>}
         </div>
@@ -1195,6 +1239,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid ${C.b
 .areas-note{color:${C.coral};font-size:14px;margin:0 0 12px}
 .areas-chips{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 18px}
 .areas-more{border-style:dashed;font-weight:600}
+.voucher-box{margin-top:16px;padding:14px;border:1px dashed ${C.line};border-radius:12px;background:${C.cream}}
 .areas-code{opacity:.65;font-weight:500}
 .linkbtn{background:none;border:0;padding:0;color:${C.coral||"#e8553d"};text-decoration:underline;cursor:pointer;font:inherit}
 .ticket-mi{color:${C.muted}}
