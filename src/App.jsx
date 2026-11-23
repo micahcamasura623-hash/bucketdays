@@ -236,8 +236,9 @@ export default function App(){
     setMeta("description","Discover and book experiences across the UK in minutes. Filter by beginner-friendly, solo, budget and category — adrenaline, flying, food, spa, days out and more.");
     const ld={ "@context":"https://schema.org","@type":"ItemList","name":"Things to do in the UK",
       "itemListElement":ACTIVITIES.slice(0,10).map((a,i)=>({"@type":"ListItem","position":i+1,
-        "item":{"@type":"Product","name":a.name,"category":a.cat,
-          "offers":{"@type":"Offer","price":displayPrice(a),"priceCurrency":"GBP"}}}))};
+        "item":{"@type":"Product","name":a.name,"category":a.cat,"description":a.blurb,
+          "image":["https://www.bucketdays.co.uk"+a.img],"brand":{"@type":"Brand","name":"BucketDays"},
+          "offers":{"@type":"Offer","price":displayPrice(a),"priceCurrency":"GBP","availability":"https://schema.org/InStock","url":"https://www.bucketdays.co.uk"+(a.url||"/")}}}))};
     let s=document.getElementById("ld"); if(!s){s=document.createElement("script");s.id="ld";s.type="application/ld+json";document.head.appendChild(s);}
     s.textContent=JSON.stringify(ld);
   },[]);
